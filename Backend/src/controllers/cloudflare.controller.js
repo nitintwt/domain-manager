@@ -2,7 +2,8 @@ import { Cloudflare } from "../models/cloudflare.model";
 import { User } from "../models/user.model";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiResponse } from "../utils/ApiResponse.js";
-
+import { decrypt } from "../utils/decrypt.js"; 
+import axios from "axios";
 
 const getCloudflareAccount = asyncHandler( async (req , res)=>{
   const {userId} = req.body
@@ -41,7 +42,7 @@ const addCloudflareAccount = asyncHandler (async (req , res)=>{
       zoneId:zoneId
     })
 
-    if(!account._id){
+    if(!cloudflareAccount._id){
       return res.status(500).json(
         new ApiResponse(500 ,null , "Something went wrong while adding your cloudflare account.")
       )
@@ -126,10 +127,31 @@ const testCloudflareCredentials = asyncHandler( async (req , res)=>{
       )
     }
     const cloudflareAccount = await Cloudflare.findById(id)
+    if (!cloudflareAccount) {
+      return res.status(404).json({ message: "Cloudflare account not found" });
+    }
+
+    const decryptedToken = decrypt(cloudflareAccount.apiToken);
+    const response = await axios.get(
+      "https://api.cloudflare.com/client/v4/user/tokens/verify",
+      {
+        headers: {
+          Authorization: `Bearer ${decryptedToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    if (response.data && response.data.success) {
+      return res
+        .status(200)
+        .json(new ApiResponse(200, null, "Cloudflare credentials are valid."));
+    } else {
+      return res.status(401).json({ message: "Invalid Cloudflare token." });
+    }
   } catch (error) {
-    console.error("Something went wrong while deleting the cloudflare account" , error)
+    console.error("Something went wrong while testing your cloudflare account" , error)
     return res.status(500).json(
-      {message: "Something went wrong while deleting the cloudflare account"}
+      {message: "Something went wrong while testing your cloudflare account"}
     )
   }
 })
