@@ -131,7 +131,12 @@ const testCloudflareCredentials = asyncHandler( async (req , res)=>{
       return res.status(404).json({ message: "Cloudflare account not found" });
     }
 
-    const decryptedToken = decrypt(cloudflareAccount.apiToken);
+    const decryptedToken = decrypt(
+      cloudflareAccount.apiToken,
+      cloudflareAccount.tokenIV,
+      cloudflareAccount.tokenTag
+    );
+
     const response = await axios.get(
       "https://api.cloudflare.com/client/v4/user/tokens/verify",
       {

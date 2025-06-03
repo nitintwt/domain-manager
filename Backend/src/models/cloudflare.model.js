@@ -1,39 +1,45 @@
-import mongoose, {Schema} from "mongoose";
-import crypto from 'crypto'
+import mongoose, { Schema } from "mongoose";
+import crypto from "crypto";
 
-const cloudflareAcccountSchema = new Schema(
+const cloudflareAccountSchema = new Schema(
   {
-    accountName:{
-      type:String,
-      required:true
+    accountName: {
+      type: String,
+      required: true,
     },
-    email:{
-      type:String,
-      required:true
+    email: {
+      type: String,
+      required: true,
     },
-    accountType:{
-      type:String,
-      required:true
+    accountType: {
+      type: String,
+      required: true,
     },
-    apiToken:{
-      type:String,
-      required:true
+    apiToken: {
+      type: String,
+      required: true,
     },
-    zoneId:{
-      type:String,
-      required:true
+    tokenIV: {
+      type: String,
     },
-    owner:[
+    tokenTag: {
+      type: String,
+    },
+    zoneId: {
+      type: String,
+      required: true,
+    },
+    owner: [
       {
-        type:Schema.Types.ObjectId,
-        ref:"User"
-      }
-    ]
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
   {
-    timestamps:true
+    timestamps: true,
   }
-)
+);
 
 const algorithm = "aes-256-gcm";
 const secret = Buffer.from(process.env.CLOUDFLARE_TOKEN_SECRET, "base64");
@@ -52,8 +58,8 @@ function encrypt(text) {
   };
 }
 
-cloudflareAcccountSchema.pre("save", function (next) {
-  if (!this.isModified("apiToken")) return next();
+cloudflareAccountSchema.pre("save", function (next) {
+  if (!this.isModified("apiToken") || !this.apiToken) return next();
 
   const { data, iv, tag } = encrypt(this.apiToken);
   this.apiToken = data;
@@ -63,4 +69,4 @@ cloudflareAcccountSchema.pre("save", function (next) {
   next();
 });
 
-export const Cloudflare = mongoose.model("Cloudflare" , cloudflareAcccountSchema)
+export const Cloudflare = mongoose.model("Cloudflare", cloudflareAccountSchema);

@@ -1,20 +1,13 @@
-import crypto from "crypto";
-
-const ENCRYPTION_KEY = process.env.CLOUDFLARE_TOKEN_SECRET;
-
-export function decrypt(encryptedText) {
-  const textParts = encryptedText.split(":");
-  const iv = Buffer.from(textParts.shift(), "hex");
-  const encrypted = Buffer.from(textParts.join(":"), "hex");
-
+export function decrypt(encryptedText, ivBase64, tagBase64) {
   const decipher = crypto.createDecipheriv(
-    "aes-256-cbc",
-    Buffer.from(ENCRYPTION_KEY),
-    iv
+    "aes-256-gcm",
+    Buffer.from(ENCRYPTION_KEY, "base64"),
+    Buffer.from(ivBase64, "base64")
   );
+  decipher.setAuthTag(Buffer.from(tagBase64, "base64"));
 
-  let decrypted = decipher.update(encrypted);
-  decrypted = Buffer.concat([decrypted, decipher.final()]);
+  let decrypted = decipher.update(encryptedText, "base64", "utf8");
+  decrypted += decipher.final("utf8");
 
-  return decrypted.toString();
+  return decrypted;
 }
