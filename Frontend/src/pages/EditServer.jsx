@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import ServerForm from "@/components/servers/ServerForm";
-import PageHeader from "@/components/ui/PageHeader";
-import LoadingSpinner from "@/components/ui/LoadingSpinner";
-import { toast } from "@/hooks/use-toast";
+import ServerForm from "../components/Server/ServerForm";
+import {Spinner} from "@heroui/spinner";
 
 // Mock data for editing
 const mockServer = {
@@ -30,18 +28,9 @@ const EditServer = () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       console.log("Updating server:", { id, ...data });
       
-      toast({
-        title: "Server updated successfully",
-        description: "Your server configuration has been updated.",
-      });
-      
       navigate("/servers");
     } catch (error) {
-      toast({
-        title: "Error updating server",
-        description: "There was an error updating your server. Please try again.",
-        variant: "destructive",
-      });
+
     } finally {
       setIsLoading(false);
     }
@@ -50,14 +39,14 @@ const EditServer = () => {
   if (!server) {
     return (
       <div className="flex items-center justify-center py-12">
-        <LoadingSpinner size="lg" />
+        <Spinner size="lg" />
       </div>
     );
   }
 
   return (
     <div>
-      <PageHeader 
+      <h1 
         title="Edit Server"
         description="Update your server configuration"
       />

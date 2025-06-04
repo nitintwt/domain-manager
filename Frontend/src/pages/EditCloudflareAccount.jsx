@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import CloudflareAccountForm from "@/components/cloudflare/CloudflareAccountForm";
-import PageHeader from "@/components/ui/PageHeader";
-import LoadingSpinner from "@/components/ui/LoadingSpinner";
-import { toast } from "@/hooks/use-toast";
+import CloudflareAccountForm from "../components/Cloudflare/CloudflareAccountForm";
+import {Spinner} from "@heroui/spinner";
 
 // Mock data for editing
 const mockAccount = {
@@ -28,18 +26,9 @@ const EditCloudflareAccount = () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       console.log("Updating Cloudflare account:", { id, ...data });
       
-      toast({
-        title: "Account updated successfully",
-        description: "Your Cloudflare account has been updated.",
-      });
-      
       navigate("/cloudflare");
     } catch (error) {
-      toast({
-        title: "Error updating account",
-        description: "There was an error updating your Cloudflare account. Please try again.",
-        variant: "destructive",
-      });
+
     } finally {
       setIsLoading(false);
     }
@@ -48,14 +37,14 @@ const EditCloudflareAccount = () => {
   if (!account) {
     return (
       <div className="flex items-center justify-center py-12">
-        <LoadingSpinner size="lg" />
+        <Spinner size="lg" />
       </div>
     );
   }
 
   return (
     <div>
-      <PageHeader 
+      <h1 
         title="Edit Cloudflare Account"
         description="Update your Cloudflare account configuration"
       />

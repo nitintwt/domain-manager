@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Edit, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import PageHeader from "@/components/ui/PageHeader";
-import EmptyState from "@/components/ui/EmptyState";
+import {Button, ButtonGroup} from "@heroui/button";;
+import EmptyState from "../components/ui/EmptyState";
 import { Server } from "lucide-react";
 
 // Mock data
@@ -37,7 +36,7 @@ const Servers = () => {
   if (servers.length === 0) {
     return (
       <div>
-        <PageHeader 
+        <h1 
           title="Servers"
           description="Manage your remote servers and SSH connections"
           action={
@@ -70,7 +69,7 @@ const Servers = () => {
 
   return (
     <div>
-      <PageHeader 
+      <h1 
         title="Servers"
         description="Manage your remote servers and SSH connections"
         action={

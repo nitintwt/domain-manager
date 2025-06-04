@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Edit, Trash2, TestTube } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import PageHeader from "@/components/ui/PageHeader";
-import StatusBadge from "@/components/ui/StatusBadge";
-import EmptyState from "@/components/ui/EmptyState";
-import TestCredentialsModal from "@/components/cloudflare/TestCredentialsModal";
+import {Button, ButtonGroup} from "@heroui/button";;
+import StatusBadge from "../components/ui/StatusBadge";
+import EmptyState from "../components/ui/EmptyState";
+import TestCredentialsModal from "../components/Cloudflare/TestCredentialsModal";
 import { Cloud } from "lucide-react";
 
 // Mock data
@@ -77,7 +76,7 @@ const CloudflareAccounts = () => {
 
   return (
     <div>
-      <PageHeader 
+      <h1 
         title="Cloudflare Accounts"
         description="Manage your Cloudflare accounts and API credentials"
         action={

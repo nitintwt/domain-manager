@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import ServerForm from "@/components/servers/ServerForm";
-import PageHeader from "@/components/ui/PageHeader";
-import { toast } from "@/hooks/use-toast";
+import ServerForm from "../components/Server/ServerForm"
 
 const AddServer = () => {
   const navigate = useNavigate();
@@ -15,18 +13,10 @@ const AddServer = () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       console.log("Adding server:", data);
       
-      toast({
-        title: "Server added successfully",
-        description: "Your server has been added to the dashboard.",
-      });
       
       navigate("/servers");
     } catch (error) {
-      toast({
-        title: "Error adding server",
-        description: "There was an error adding your server. Please try again.",
-        variant: "destructive",
-      });
+
     } finally {
       setIsLoading(false);
     }
@@ -34,7 +24,7 @@ const AddServer = () => {
 
   return (
     <div>
-      <PageHeader 
+      <h1 
         title="Add Server"
         description="Add a new server to your dashboard for remote management"
       />
