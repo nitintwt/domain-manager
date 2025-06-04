@@ -1,13 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Edit, Trash2, TestTube } from "lucide-react";
-import {Button, ButtonGroup} from "@heroui/button";;
+import { Plus, Edit, Trash2, TestTube, Cloud } from "lucide-react";
+import { Button, ButtonGroup } from "@heroui/button";
 import StatusBadge from "../components/ui/StatusBadge";
 import EmptyState from "../components/ui/EmptyState";
 import TestCredentialsModal from "../components/Cloudflare/TestCredentialsModal";
-import { Cloud } from "lucide-react";
 
-// Mock data
 const mockAccounts = [
   {
     id: "1",
@@ -40,29 +38,34 @@ const CloudflareAccounts = () => {
     // Placeholder for delete logic
   };
 
+  const Header = () => (
+    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex items-center space-x-4">
+      </div>
+      <Button 
+        asChild 
+        className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 shadow-sm rounded-md"
+      >
+        <Link to="/cloudflare/add" className="flex items-center gap-2">
+          <Plus className="h-4 w-4" />
+          Add Account
+        </Link>
+      </Button>
+    </div>
+  );
+
   if (accounts.length === 0) {
     return (
-      <div>
-        <PageHeader 
-          title="Cloudflare Accounts"
-          description="Manage your Cloudflare accounts and API credentials"
-          action={
-            <Button asChild>
-              <Link to="/cloudflare/add">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Account
-              </Link>
-            </Button>
-          }
-        />
-        <div className="bg-white rounded-lg border border-gray-200">
+      <div className="p-6 space-y-6">
+        <Header />
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
           <EmptyState
-            icon={<Cloud className="h-12 w-12" />}
+            icon={<Cloud className="h-12 w-12 text-blue-600" />}
             title="No Cloudflare accounts"
             description="Get started by adding your first Cloudflare account to manage your DNS and security settings."
             action={
-              <Button asChild>
-                <Link to="/cloudflare/add">
+              <Button asChild className="bg-blue-600 text-white hover:bg-blue-700">
+                <Link to="/cloudflare/add" className="flex items-center">
                   <Plus className="mr-2 h-4 w-4" />
                   Add Your First Account
                 </Link>
@@ -75,21 +78,10 @@ const CloudflareAccounts = () => {
   }
 
   return (
-    <div>
-      <h1 
-        title="Cloudflare Accounts"
-        description="Manage your Cloudflare accounts and API credentials"
-        action={
-          <Button asChild>
-            <Link to="/cloudflare/add">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Account
-            </Link>
-          </Button>
-        }
-      />
+    <div className="p-6 space-y-6">
+      <Header />
 
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -113,7 +105,7 @@ const CloudflareAccounts = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {accounts.map((account) => (
-                <tr key={account.id} className="hover:bg-gray-50">
+                <tr key={account.id} className="hover:bg-gray-50/50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="font-medium text-gray-900">{account.accountName}</div>
                   </td>
@@ -129,15 +121,21 @@ const CloudflareAccounts = () => {
                     {new Date(account.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center justify-end space-x-2">
+                    <ButtonGroup>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleTestCredentials(account.id)}
+                        className="text-gray-600 hover:text-blue-600 hover:bg-blue-50"
                       >
                         <TestTube className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        asChild
+                        className="text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                      >
                         <Link to={`/cloudflare/edit/${account.id}`}>
                           <Edit className="h-4 w-4" />
                         </Link>
@@ -146,11 +144,11 @@ const CloudflareAccounts = () => {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDelete(account.id)}
-                        className="text-red-600 hover:text-red-700"
+                        className="text-gray-600 hover:text-red-600 hover:bg-red-50"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
-                    </div>
+                    </ButtonGroup>
                   </td>
                 </tr>
               ))}

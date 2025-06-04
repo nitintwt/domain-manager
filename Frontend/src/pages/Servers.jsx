@@ -33,29 +33,35 @@ const Servers = () => {
     // Placeholder for delete logic
   };
 
+    const Header = () => (
+    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex items-center space-x-4">
+
+      </div>
+      <Button 
+        asChild 
+        className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 shadow-sm rounded-md"
+      >
+        <Link to="/servers/add" className="flex items-center gap-2">
+          <Plus className="h-4 w-4" />
+          Add Server
+        </Link>
+      </Button>
+    </div>
+  );
+
   if (servers.length === 0) {
     return (
-      <div>
-        <h1 
-          title="Servers"
-          description="Manage your remote servers and SSH connections"
-          action={
-            <Button asChild>
-              <Link to="/servers/add">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Server
-              </Link>
-            </Button>
-          }
-        />
-        <div className="bg-white rounded-lg border border-gray-200">
+      <div className="p-6 space-y-6">
+        <Header />
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
           <EmptyState
-            icon={<Server className="h-12 w-12" />}
+            icon={<Server className="h-12 w-12 text-blue-600" />}
             title="No servers configured"
             description="Get started by adding your first server to manage remote deployments and configurations."
             action={
-              <Button asChild>
-                <Link to="/servers/add">
+              <Button asChild className="bg-blue-600 text-white hover:bg-blue-700">
+                <Link to="/servers/add" className="flex items-center">
                   <Plus className="mr-2 h-4 w-4" />
                   Add Your First Server
                 </Link>
@@ -69,19 +75,9 @@ const Servers = () => {
 
   return (
     <div>
-      <h1 
-        title="Servers"
-        description="Manage your remote servers and SSH connections"
-        action={
-          <Button asChild>
-            <Link to="/servers/add">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Server
-            </Link>
-          </Button>
-        }
-      />
-
+    <div className="p-6 space-y-6">
+      <Header />
+    </div>
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">

@@ -1,16 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {Button, ButtonGroup} from "@heroui/button";
-import {Input} from "@heroui/input";
-import {Select, SelectSection, SelectItem} from "@heroui/select";
-import {Card, CardHeader, CardBody, CardFooter} from "@heroui/card";
-import {Textarea} from "@heroui/input";
-import {Spinner} from "@heroui/spinner";
+import { Button } from "@heroui/button";
+import { Input } from "@heroui/input";
+import { Select, SelectSection, SelectItem } from "@heroui/select";
+import { Card, CardHeader, CardBody } from "@heroui/card";
+import { Textarea } from "@heroui/input";
+import { Spinner } from "@heroui/spinner";
+import { TestTube, CloudIcon, ChevronLeft } from "lucide-react";
 import TestCredentialsModal from "./TestCredentialsModal";
-import { TestTube } from "lucide-react";
 
 const CloudflareAccountForm = ({ initialData, onSubmit, isLoading }) => {
   const navigate = useNavigate();
+  const [showTestModal, setShowTestModal] = useState(false);
   const [formData, setFormData] = useState({
     accountName: initialData?.accountName || "",
     email: initialData?.email || "",
@@ -18,31 +19,29 @@ const CloudflareAccountForm = ({ initialData, onSubmit, isLoading }) => {
     apiToken: initialData?.apiToken || "",
     zoneId: initialData?.zoneId || "",
   });
-
   const [errors, setErrors] = useState({});
-  const [showTestModal, setShowTestModal] = useState(false);
 
-  const validate = () => {
+  const validateForm = () => {
     const newErrors = {};
-
+    
     if (!formData.accountName.trim()) {
       newErrors.accountName = "Account name is required";
     }
-
+    
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Please enter a valid email address";
     }
-
+    
     if (!formData.accountType) {
       newErrors.accountType = "Account type is required";
     }
-
+    
     if (!formData.apiToken.trim()) {
       newErrors.apiToken = "API token is required";
     }
-
+    
     if (!formData.zoneId.trim()) {
       newErrors.zoneId = "Zone ID is required";
     }
@@ -51,27 +50,41 @@ const CloudflareAccountForm = ({ initialData, onSubmit, isLoading }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validate()) {
-      onSubmit(formData);
+    
+    if (validateForm()) {
+      try {
+        await onSubmit(formData);
+        navigate("/cloudflare");
+      } catch (error) {
+        setErrors(prev => ({
+          ...prev,
+          submit: "Failed to save account. Please try again."
+        }));
+      }
     }
   };
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: "" }));
+      setErrors(prev => ({
+        ...prev,
+        [field]: ""
+      }));
     }
   };
 
   const handleTestCredentials = () => {
-    // Check if required fields for testing are filled
     if (!formData.apiToken.trim() || !formData.zoneId.trim()) {
       setErrors(prev => ({
         ...prev,
         apiToken: !formData.apiToken.trim() ? "API token is required for testing" : "",
-        zoneId: !formData.zoneId.trim() ? "Zone ID is required for testing" : "",
+        zoneId: !formData.zoneId.trim() ? "Zone ID is required for testing" : ""
       }));
       return;
     }
@@ -79,144 +92,180 @@ const CloudflareAccountForm = ({ initialData, onSubmit, isLoading }) => {
   };
 
   return (
-    <>
-      <Card className="max-w-2xl">
-        <CardHeader>
-          <h3>{initialData ? "Edit" : "Add"} Cloudflare Account</h3>
-          <CardBody>
-            {initialData ? "Update your" : "Add a new"} Cloudflare account configuration
-          </CardBody>
-        </CardHeader>
-        <CardBody>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <h3 htmlFor="accountName">Account Name</h3>
-              <Input
-                id="accountName"
-                placeholder="e.g., Production Account"
-                value={formData.accountName}
-                onChange={(e) => handleInputChange("accountName", e.target.value)}
-                className={errors.accountName ? "border-red-500" : ""}
-              />
-              {errors.accountName && (
-                <p className="text-sm text-red-600">{errors.accountName}</p>
-              )}
-            </div>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-3xl mx-auto px-4">
+        <button 
+          onClick={() => navigate("/cloudflare")}
+          className="flex items-center text-gray-600 hover:text-gray-900 mb-6"
+        >
+          <ChevronLeft className="w-4 h-4 mr-1" />
+          Back to Accounts
+        </button>
 
-            <div className="space-y-2">
-              <h3 htmlFor="email">Email</h3>
-              <Input
-                id="email"
-                type="email"
-                placeholder="admin@company.com"
-                value={formData.email}
-                onChange={(e) => handleInputChange("email", e.target.value)}
-                className={errors.email ? "border-red-500" : ""}
-              />
-              {errors.email && (
-                <p className="text-sm text-red-600">{errors.email}</p>
-              )}
+        <Card className="bg-white shadow-lg rounded-xl border-0">
+          <CardHeader className="px-6 py-5 border-b border-gray-100">
+            <div className="flex items-center space-x-3">
+              <CloudIcon className="w-6 h-6 text-blue-500" />
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {initialData ? "Edit" : "Add"} Cloudflare Account
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  {initialData ? "Update your" : "Configure a new"} Cloudflare account settings
+                </p>
+              </div>
             </div>
+          </CardHeader>
 
-            <div className="space-y-2">
-              <h3 htmlFor="accountType">Account Type</h3>
-              <Select value={formData.accountType} onValueChange={(value) => handleInputChange("accountType", value)}>
-                {/*<h3 className={errors.accountType ? "border-red-500" : ""}>
-                  <p placeholder="Select account type" />
-                </h3>*/}
-                <SelectSection>
-                  <SelectItem value="Free">Free</SelectItem>
-                  <SelectItem value="Pro">Pro</SelectItem>
-                  <SelectItem value="Business">Business</SelectItem>
-                  <SelectItem value="Enterprise">Enterprise</SelectItem>
-                </SelectSection>
-              </Select>
-              {errors.accountType && (
-                <p className="text-sm text-red-600">{errors.accountType}</p>
-              )}
-            </div>
+          <CardBody className="p-6">
+            <form onSubmit={handleSubmit} className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label htmlFor="accountName" className="block text-sm font-medium text-gray-700">
+                    Account Name <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    id="accountName"
+                    placeholder="e.g., Production Account"
+                    value={formData.accountName}
+                    onChange={(e) => handleInputChange("accountName", e.target.value)}
+                    className={`w-full rounded-lg ${errors.accountName ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'}`}
+                  />
+                  {errors.accountName && (
+                    <p className="text-sm text-red-600">{errors.accountName}</p>
+                  )}
+                </div>
 
-            <div className="space-y-2">
-              <h3 htmlFor="apiToken">API Token</h3>
-              <Textarea
-                id="apiToken"
-                placeholder="Enter your Cloudflare API token"
-                value={formData.apiToken}
-                onChange={(e) => handleInputChange("apiToken", e.target.value)}
-                className={errors.apiToken ? "border-red-500" : ""}
-                rows={3}
-              />
-              {errors.apiToken && (
-                <p className="text-sm text-red-600">{errors.apiToken}</p>
-              )}
-              <p className="text-xs text-gray-500">
-                You can find your API token in the Cloudflare dashboard under My Profile → API Tokens
-              </p>
-            </div>
+                <div className="space-y-2">
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                    Email <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="admin@company.com"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    className={`w-full rounded-lg ${errors.email ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'}`}
+                  />
+                  {errors.email && (
+                    <p className="text-sm text-red-600">{errors.email}</p>
+                  )}
+                </div>
+              </div>
 
-            <div className="space-y-2">
-              <h3 htmlFor="zoneId">Zone ID</h3>
-              <Input
-                id="zoneId"
-                placeholder="Enter your Cloudflare Zone ID"
-                value={formData.zoneId}
-                onChange={(e) => handleInputChange("zoneId", e.target.value)}
-                className={errors.zoneId ? "border-red-500" : ""}
-              />
-              {errors.zoneId && (
-                <p className="text-sm text-red-600">{errors.zoneId}</p>
-              )}
-              <p className="text-xs text-gray-500">
-                You can find the Zone ID in your domain's overview page in the Cloudflare dashboard
-              </p>
-            </div>
-
-            {/* Test Credentials Button */}
-            <div className="pt-4 border-t">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleTestCredentials}
-                className="w-full sm:w-auto"
-              >
-                <TestTube className="w-4 h-4 mr-2" />
-                Test Credentials
-              </Button>
-              <p className="text-xs text-gray-500 mt-2">
-                Test your API token and Zone ID before saving
-              </p>
-            </div>
-
-            <div className="flex justify-end space-x-3 pt-6">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => navigate("/cloudflare")}
-                disabled={isLoading}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Spinner size="sm" />
-                    <span className="ml-2">Saving...</span>
-                  </>
-                ) : (
-                  <span>{initialData ? "Update" : "Add"} Account</span>
+              <div className="space-y-2">
+                <label htmlFor="accountType" className="block text-sm font-medium text-gray-700">
+                  Account Type <span className="text-red-500">*</span>
+                </label>
+                <Select
+                  id="accountType"
+                  value={formData.accountType}
+                  onValueChange={(value) => handleInputChange("accountType", value)}
+                  className={`w-full rounded-lg ${errors.accountType ? 'border-red-300' : 'border-gray-300'}`}
+                >
+                  <SelectSection>
+                    {["Free", "Pro", "Business", "Enterprise"].map((type) => (
+                      <SelectItem key={type} value={type} className="py-2 px-3">
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectSection>
+                </Select>
+                {errors.accountType && (
+                  <p className="text-sm text-red-600">{errors.accountType}</p>
                 )}
-              </Button>
-            </div>
-          </form>
-        </CardBody>
-      </Card>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="apiToken" className="block text-sm font-medium text-gray-700">
+                  API Token <span className="text-red-500">*</span>
+                </label>
+                <Textarea
+                  id="apiToken"
+                  value={formData.apiToken}
+                  onChange={(e) => handleInputChange("apiToken", e.target.value)}
+                  placeholder="Enter your Cloudflare API token"
+                  rows={3}
+                  className={`w-full rounded-lg ${errors.apiToken ? 'border-red-300' : 'border-gray-300'}`}
+                />
+                {errors.apiToken && (
+                  <p className="text-sm text-red-600">{errors.apiToken}</p>
+                )}
+                <p className="text-xs text-gray-500">
+                  Find your API token in Cloudflare dashboard under My Profile → API Tokens
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="zoneId" className="block text-sm font-medium text-gray-700">
+                  Zone ID <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  id="zoneId"
+                  value={formData.zoneId}
+                  onChange={(e) => handleInputChange("zoneId", e.target.value)}
+                  placeholder="Enter your Cloudflare Zone ID"
+                  className={`w-full rounded-lg ${errors.zoneId ? 'border-red-300' : 'border-gray-300'}`}
+                />
+                {errors.zoneId && (
+                  <p className="text-sm text-red-600">{errors.zoneId}</p>
+                )}
+                <p className="text-xs text-gray-500">
+                  Find the Zone ID in your domain's overview page in the Cloudflare dashboard
+                </p>
+              </div>
+
+              <div className="pt-6 border-t border-gray-100">
+                <div className="flex flex-col sm:flex-row sm:justify-between items-stretch gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleTestCredentials}
+                    className="flex items-center justify-center px-4 py-2 border border-blue-300 text-blue-600 rounded-lg hover:bg-blue-50"
+                  >
+                    <TestTube className="w-4 h-4 mr-2" />
+                    Test Credentials
+                  </Button>
+                  
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => navigate("/cloudflare")}
+                      disabled={isLoading}
+                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={isLoading}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    >
+                      {isLoading ? (
+                        <div className="flex items-center justify-center">
+                          <Spinner size="sm" className="mr-2" />
+                          <span>Saving...</span>
+                        </div>
+                      ) : (
+                        <span>{initialData ? "Update" : "Add"} Account</span>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </CardBody>
+        </Card>
+      </div>
 
       <TestCredentialsModal 
         open={showTestModal} 
         onClose={() => setShowTestModal(false)}
         accountId={initialData?.id || null}
       />
-    </>
+    </div>
   );
 };
 
