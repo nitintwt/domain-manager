@@ -1,37 +1,37 @@
-import { useState } from "react";
+import { useState , useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import {Button, ButtonGroup} from "@heroui/button";;
 import EmptyState from "../components/ui/EmptyState";
 import { Server } from "lucide-react";
-
-// Mock data
-const mockServers = [
-  {
-    id: "1",
-    serverName: "Production Server",
-    hostName: "prod.company.com",
-    sshPort: 22,
-    serverLocation: "US East",
-    createdAt: "2024-01-15",
-  },
-  {
-    id: "2",
-    serverName: "Development Server", 
-    hostName: "dev.company.com",
-    sshPort: 2222,
-    serverLocation: "US West",
-    createdAt: "2024-02-10",
-  },
-];
+import axios from "axios";
+import { useCookies } from 'react-cookie';
 
 const Servers = () => {
-  const [servers] = useState(mockServers);
+  const [servers , setServers] = useState();
+  const [cookies] = useCookies();
 
-  const handleDelete = (serverId) => {
-    console.log("Delete server:", serverId);
-    // Placeholder for delete logic
+  const handleDelete = async (accountId) => {
+    try {
+      const ress = await axios.delete(`/api/v1/server/server-credentials/${accountId}`)
+      console.log("deleted" , ress)
+    } catch (error) {
+      console.log("Something went wrong while deleting your", error)
+    }
   };
+
+  useEffect(()=>{
+    const fetchServers = async ()=>{
+      try {
+        const response = await axios.get(`/api/v1/server/server-credentials?userId=${cookies.userData?._id}`)
+        setServers(response.data.data)
+        console.log("accounts" , response)
+      } catch (error) {
+        console.log("Something went wrong while fetching Servers" , error)
+      }
+    }
+    fetchServers()
+  }, [])
 
     const Header = () => (
     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -50,7 +50,7 @@ const Servers = () => {
     </div>
   );
 
-  if (servers.length === 0) {
+  if (servers?.length === 0) {
     return (
       <div className="p-6 space-y-6">
         <Header />
@@ -104,8 +104,8 @@ const Servers = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {servers.map((server) => (
-                <tr key={server.id} className="hover:bg-gray-50">
+              {servers?.map((server) => (
+                <tr key={server._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="font-medium text-gray-900">{server.serverName}</div>
                   </td>
@@ -124,14 +124,14 @@ const Servers = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
                       <Button variant="ghost" size="sm" asChild>
-                        <Link to={`/servers/edit/${server.id}`}>
+                        <Link to={`/servers/edit/${server._id}`}>
                           <Edit className="h-4 w-4" />
                         </Link>
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDelete(server.id)}
+                        onClick={() => handleDelete(server._id)}
                         className="text-red-600 hover:text-red-700"
                       >
                         <Trash2 className="h-4 w-4" />

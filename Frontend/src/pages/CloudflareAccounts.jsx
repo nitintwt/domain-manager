@@ -8,25 +8,8 @@ import TestCredentialsModal from "../components/Cloudflare/TestCredentialsModal"
 import axios from "axios";
 import { useCookies } from 'react-cookie';
 
-const mockAccounts = [
-  {
-    id: "1",
-    accountName: "Production Account",
-    email: "admin@company.com",
-    accountType: "Enterprise",
-    createdAt: "2024-01-15",
-  },
-  {
-    id: "2", 
-    accountName: "Development Account",
-    email: "dev@company.com",
-    accountType: "Pro",
-    createdAt: "2024-02-10",
-  },
-];
-
 const CloudflareAccounts = () => {
-  const [accounts , setAccounts] = useState(mockAccounts);
+  const [accounts , setAccounts] = useState();
   const [testModalOpen, setTestModalOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [cookies] = useCookies();
@@ -75,7 +58,7 @@ const CloudflareAccounts = () => {
     </div>
   );
 
-  if (accounts.length === 0) {
+  if (accounts?.length === 0) {
     return (
       <div className="p-6 space-y-6">
         <Header />
@@ -125,7 +108,7 @@ const CloudflareAccounts = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {accounts.map((account) => (
+              {accounts?.map((account) => (
                 <tr key={account._id} className="hover:bg-gray-50/50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="font-medium text-gray-900">{account.accountName}</div>

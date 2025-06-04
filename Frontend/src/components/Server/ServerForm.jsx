@@ -17,7 +17,6 @@ const ServerForm = ({ initialData, onSubmit, isLoading }) => {
     sshPort: initialData?.sshPort || 22,
     serverLocation: initialData?.serverLocation || "",
     sshUsername: initialData?.sshUsername || "",
-    sshKey: initialData?.sshKey || "",
     sshPassword: initialData?.sshPassword || "",
   });
 
@@ -47,11 +46,6 @@ const ServerForm = ({ initialData, onSubmit, isLoading }) => {
 
     if (!formData.sshUsername.trim()) {
       newErrors.sshUsername = "SSH username is required";
-    }
-
-    if (!formData.sshKey.trim() && !formData.sshPassword.trim()) {
-      newErrors.sshKey = "Either SSH key or password is required";
-      newErrors.sshPassword = "Either SSH key or password is required";
     }
 
     setErrors(newErrors);
@@ -105,10 +99,11 @@ const ServerForm = ({ initialData, onSubmit, isLoading }) => {
     }
   };
 
-    const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (validate()) {
-      onSubmit(formData);
+      await onSubmit(formData);
+      navigate('/servers')
     }
   };
 

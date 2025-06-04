@@ -5,7 +5,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { Client } from "ssh2";
 
 const getServers = asyncHandler(async (req , res)=>{
-  const {userId} = req.body
+  const {userId} = req.query
   try {
     const user = await User.findById(userId)
     if(!user){
@@ -24,6 +24,21 @@ const getServers = asyncHandler(async (req , res)=>{
   }
 })
 
+const getServer = asyncHandler(async (req , res)=>{
+  const id = req.params.id
+  try {
+    const server = await Server.findById(id)
+    return res.status(200).json(
+      new ApiResponse(200 , server , "Server fetched successfully.")
+    )
+  } catch (error) {
+    console.error("Something went wrong while fetching server" , error)
+    return res.status(500).json(
+      {message: "Something went wrong while fetching server"}
+    ) 
+  }
+})
+
 const createServer = asyncHandler( async (req , res)=>{
   const {userId , serverName , hostName , sshPort , serverLocation , sshUsername , sshKey , sshPassword} = req.body
   try {
@@ -32,16 +47,22 @@ const createServer = asyncHandler( async (req , res)=>{
       return res.status(404).json({message:"No user found with the provided user id."})
     }
 
-    const server = await Server.create({
+    const serverData = {
       serverName,
       hostName,
-      sshPort,
+      sshPort: sshPort || 22,
       serverLocation,
       sshUsername,
-      sshKey,
-      sshPassword,
-      owner:userId
-    })
+      owner: userId
+    };
+
+    if (sshKey) {
+      serverData.sshKey = sshKey;
+    } else {
+      serverData.sshPassword = sshPassword;
+    }
+
+    const server = await Server.create(serverData);
     return res.status(200).json(
       new ApiResponse(200 , server , "Server created successfully.")
     )
@@ -84,14 +105,8 @@ const updateServer = asyncHandler ( async ( req , res)=>{
 })
 
 const deleteServer = asyncHandler( async ( req , res)=>{
-  const {userId} = req.body
   const id = req.params.id
   try {
-    const user = await User.findById(userId)
-    if(!user){
-      return res.status(404).json({message:"No user found with the provided user id."})
-    }
-
     const server = await Server.findByIdAndDelete(id)
     return res.status(200).json(
       new ApiResponse(200 , server , "Server Deleted Successfully")
@@ -127,4 +142,4 @@ const testServer = asyncHandler( async ( req , res)=>{
   }
 })
 
-export {getServers , createServer , updateServer , deleteServer , testServer}
+export {getServers , createServer , updateServer , deleteServer , testServer , getServer}
