@@ -1,12 +1,13 @@
-import { Cloudflare } from "../models/cloudflare.model";
-import { User } from "../models/user.model";
-import { asyncHandler } from "../utils/asyncHandler";
+import { Cloudflare } from "../models/cloudflare.model.js";
+import { User } from "../models/user.model.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { decrypt } from "../utils/decrypt.js"; 
 import axios from "axios";
 
-const getCloudflareAccount = asyncHandler( async (req , res)=>{
-  const {userId} = req.body
+const getCloudflareAccounts = asyncHandler( async (req , res)=>{
+  const {userId} = req.query
+  
   try {
     const user = await User.findById(userId)
     if(!user){
@@ -16,6 +17,21 @@ const getCloudflareAccount = asyncHandler( async (req , res)=>{
     const accounts = await Cloudflare.find({owner:userId})
     return res.status(200).json(
       new ApiResponse(200 , accounts , "All cloudflare accounts fetched successfully.")
+    )
+  } catch (error) {
+    console.error("Something went wrong while fetching cloudflare accounts" , error)
+    return res.status(500).json(
+      {message: "Something went wrong while fetching cloudflare accounts"}
+    ) 
+  }
+})
+const getCloudflareAccount = asyncHandler( async (req , res)=>{
+  const id = req.params.id
+  
+  try {
+    const account = await Cloudflare.findById(id)
+    return res.status(200).json(
+      new ApiResponse(200 , account , "All cloudflare accounts fetched successfully.")
     )
   } catch (error) {
     console.error("Something went wrong while fetching cloudflare accounts" , error)
@@ -94,15 +110,8 @@ const updateCloudflareAccount = asyncHandler ( async ( req , res)=>{
 })
 
 const deleteCloudflareAccount = asyncHandler(async (req , res)=>{
-  const {userId}= req.body
   const cloudflareId = req.params.id
   try {
-    const user = await User.findById(userId)
-    if (!user){
-      return res.status(404).json(
-        {message: "User doesn't exist" }
-      )
-    }
     const account = await Cloudflare.findByIdAndDelete(cloudflareId)
     return res.status(200).json(
       new ApiResponse( 200 , null , "Account deleted successfully.")
@@ -161,4 +170,4 @@ const testCloudflareCredentials = asyncHandler( async (req , res)=>{
   }
 })
 
-export {getCloudflareAccount , addCloudflareAccount , updateCloudflareAccount , deleteCloudflareAccount , testCloudflareCredentials}
+export {getCloudflareAccounts , addCloudflareAccount , updateCloudflareAccount , deleteCloudflareAccount , testCloudflareCredentials , getCloudflareAccount}

@@ -1,22 +1,30 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CloudflareAccountForm from "../components/Cloudflare/CloudflareAccountForm";
-
+import axios from 'axios'
+import { useCookies } from 'react-cookie';
 
 const AddCloudflareAccount = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [cookies] = useCookies();
+
 
   const handleSubmit = async (data) => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log("Adding Cloudflare account:", data);
-      
+      const addData = await axios.post(`/api/v1/cloudflare/cloudflare-accounts`, {
+        userId:cookies.userData?._id,
+        accountName:data.accountName,
+        email:data.email,
+        accountType:data.accountType,
+        apiToken:data.apiToken,
+        zoneId:data.zoneId
+      })
+      console.log("Adding Cloudflare account:", addData);
       navigate("/cloudflare");
     } catch (error) {
-
+      console.log("Something went wrong while adding cloduflare account" , error)
     } finally {
       setIsLoading(false);
     }

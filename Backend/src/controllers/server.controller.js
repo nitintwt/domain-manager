@@ -1,7 +1,7 @@
-import { asyncHandler } from "../utils/asyncHandler";
-import { User } from "../models/user.model";
-import {Server} from "../models/server.model"
-import { ApiResponse } from "../utils/ApiResponse";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { User } from "../models/user.model.js";
+import {Server} from "../models/server.model.js"
+import { ApiResponse } from "../utils/ApiResponse.js";
 import { Client } from "ssh2";
 
 const getServers = asyncHandler(async (req , res)=>{

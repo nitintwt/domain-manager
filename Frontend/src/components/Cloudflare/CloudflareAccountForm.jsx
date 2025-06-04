@@ -15,7 +15,7 @@ const CloudflareAccountForm = ({ initialData, onSubmit, isLoading }) => {
   const [formData, setFormData] = useState({
     accountName: initialData?.accountName || "",
     email: initialData?.email || "",
-    accountType: initialData?.accountType || "",
+    accountType: initialData?.accountType || "Free",
     apiToken: initialData?.apiToken || "",
     zoneId: initialData?.zoneId || "",
   });

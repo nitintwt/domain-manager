@@ -1,5 +1,10 @@
 import mongoose, { Schema } from "mongoose";
 import crypto from "crypto";
+import dotenv from 'dotenv'
+
+dotenv.config({
+  path:'./.env'
+})
 
 const cloudflareAccountSchema = new Schema(
   {

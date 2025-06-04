@@ -59,7 +59,7 @@ function encrypt(text) {
   };
 }
 
-cloudflareAcccountSchema.pre("save", function (next) {
+serverSchema.pre("save", function (next) {
   if (!this.isModified("sshKey")) return next();
 
   const { data, iv, tag } = encrypt(this.sshKey);

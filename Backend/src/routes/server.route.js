@@ -1,5 +1,5 @@
 import {Router} from 'express'
-import { createServer, deleteServer, getServers, testServer, updateServer } from '../controllers/server.controller'
+import { createServer, deleteServer, getServers, testServer, updateServer } from '../controllers/server.controller.js'
 
 const serverRouter = Router()
 

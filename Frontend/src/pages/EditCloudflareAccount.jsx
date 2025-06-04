@@ -1,38 +1,49 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import CloudflareAccountForm from "../components/Cloudflare/CloudflareAccountForm";
 import {Spinner} from "@heroui/spinner";
-
-// Mock data for editing
-const mockAccount = {
-  id: "1",
-  accountName: "Production Account",
-  email: "admin@company.com",
-  accountType: "Enterprise",
-  apiToken: "cf_token_example_123456789",
-  zoneId: "zone_id_example_abcdef",
-};
+import axios from "axios";
+import { useCookies } from 'react-cookie';
 
 const EditCloudflareAccount = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [isLoading, setIsLoading] = useState(false);
-  const [account] = useState(mockAccount); // In real app, fetch by ID
+  const [account, setAccount] = useState();
+  const [cookies] = useCookies();
 
   const handleSubmit = async (data) => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log("Updating Cloudflare account:", { id, ...data });
-      
+      const updateData = await axios.put(`/api/v1/cloudflare/cloudflare-accounts/${id}`, {
+        userId:cookies.userData?._id,
+        accountName:data.accountName,
+        email:data.email,
+        accountType:data.accountType,
+        apiToken:data.apiToken,
+        zoneId:data.zoneId
+      })
+      console.log("updated dta" , updateData)
       navigate("/cloudflare");
     } catch (error) {
-
+      console.log("Something went wrong while updating your account data" , error)
     } finally {
       setIsLoading(false);
     }
   };
+
+  useEffect(()=>{
+    const fetchAccount = async ()=>{
+      try {
+        const accountData = await axios.get(`/api/v1/cloudflare/cloudflare-account/${id}`)
+        setAccount(accountData.data.data)
+        console.log("data" ,accountData)
+      } catch (error) {
+        console.log("Something went wrong while fetching accounts data " , error)
+      }
+    }
+    fetchAccount()
+  },[])
 
   if (!account) {
     return (

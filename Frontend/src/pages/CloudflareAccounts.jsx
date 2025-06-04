@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Edit, Trash2, TestTube, Cloud } from "lucide-react";
 import { Button, ButtonGroup } from "@heroui/button";
 import StatusBadge from "../components/ui/StatusBadge";
 import EmptyState from "../components/ui/EmptyState";
 import TestCredentialsModal from "../components/Cloudflare/TestCredentialsModal";
+import axios from "axios";
+import { useCookies } from 'react-cookie';
 
 const mockAccounts = [
   {
@@ -24,19 +26,38 @@ const mockAccounts = [
 ];
 
 const CloudflareAccounts = () => {
-  const [accounts] = useState(mockAccounts);
+  const [accounts , setAccounts] = useState(mockAccounts);
   const [testModalOpen, setTestModalOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState(null);
+  const [cookies] = useCookies();
 
   const handleTestCredentials = (accountId) => {
     setSelectedAccount(accountId);
     setTestModalOpen(true);
   };
+  console.log(cookies.userData?._id)
 
-  const handleDelete = (accountId) => {
-    console.log("Delete account:", accountId);
-    // Placeholder for delete logic
+  const handleDelete = async (accountId) => {
+    try {
+      const ress = await axios.delete(`/api/v1/cloudflare/cloudflare-accounts/${accountId}`)
+      console.log("deleted" , ress)
+    } catch (error) {
+      console.log("Something went wrong while deleting your", error)
+    }
   };
+
+  useEffect(()=>{
+    const fetchAccounts = async ()=>{
+      try {
+        const response = await axios.get(`/api/v1/cloudflare/cloudflare-accounts?userId=${cookies.userData?._id}`)
+        setAccounts(response.data.data)
+        console.log("accounts" , response)
+      } catch (error) {
+        console.log("Something went wrong while fetching accounts")
+      }
+    }
+    fetchAccounts()
+  }, [])
 
   const Header = () => (
     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -105,7 +126,7 @@ const CloudflareAccounts = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {accounts.map((account) => (
-                <tr key={account.id} className="hover:bg-gray-50/50">
+                <tr key={account._id} className="hover:bg-gray-50/50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="font-medium text-gray-900">{account.accountName}</div>
                   </td>
@@ -125,7 +146,7 @@ const CloudflareAccounts = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleTestCredentials(account.id)}
+                        onClick={() => handleTestCredentials(account._id)}
                         className="text-gray-600 hover:text-blue-600 hover:bg-blue-50"
                       >
                         <TestTube className="h-4 w-4" />
@@ -136,14 +157,14 @@ const CloudflareAccounts = () => {
                         asChild
                         className="text-gray-600 hover:text-blue-600 hover:bg-blue-50"
                       >
-                        <Link to={`/cloudflare/edit/${account.id}`}>
+                        <Link to={`/cloudflare/edit/${account._id}`}>
                           <Edit className="h-4 w-4" />
                         </Link>
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDelete(account.id)}
+                        onClick={() => handleDelete(account._id)}
                         className="text-gray-600 hover:text-red-600 hover:bg-red-50"
                       >
                         <Trash2 className="h-4 w-4" />
