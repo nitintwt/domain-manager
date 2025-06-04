@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {Button, ButtonGroup} from "@heroui/button";
 import {Input} from "@heroui/input";
-import { h3 } from "@/components/ui/label";
 import {Select, SelectSection, SelectItem} from "@heroui/select";
 import {Card, CardHeader, CardBody, CardFooter} from "@heroui/card";
 import {Textarea} from "@heroui/input";
@@ -122,15 +121,15 @@ const CloudflareAccountForm = ({ initialData, onSubmit, isLoading }) => {
             <div className="space-y-2">
               <h3 htmlFor="accountType">Account Type</h3>
               <Select value={formData.accountType} onValueChange={(value) => handleInputChange("accountType", value)}>
-                <SelectTrigger className={errors.accountType ? "border-red-500" : ""}>
-                  <SelectValue placeholder="Select account type" />
-                </SelectTrigger>
-                <SelectContent>
+                {/*<h3 className={errors.accountType ? "border-red-500" : ""}>
+                  <p placeholder="Select account type" />
+                </h3>*/}
+                <SelectSection>
                   <SelectItem value="Free">Free</SelectItem>
                   <SelectItem value="Pro">Pro</SelectItem>
                   <SelectItem value="Business">Business</SelectItem>
                   <SelectItem value="Enterprise">Enterprise</SelectItem>
-                </SelectContent>
+                </SelectSection>
               </Select>
               {errors.accountType && (
                 <p className="text-sm text-red-600">{errors.accountType}</p>

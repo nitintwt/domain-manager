@@ -4,8 +4,8 @@ import { Button, ButtonGroup } from '@nextui-org/button';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useCookies } from 'react-cookie';
-import {Card, CardHeader, CardBody, CardFooter} from "@nextui-org/card";
-import {Input} from "@nextui-org/input";
+import {Card, CardHeader, CardBody, CardFooter} from "@heroui/card";
+import {Input} from "@heroui/input";
 import { Link} from 'react-router-dom';
 
 export default function LoginBox() {

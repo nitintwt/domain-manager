@@ -1,19 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import LoadingSpinner from "@/components/ui/LoadingSpinner";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import StatusBadge from "@/components/ui/StatusBadge";
+import {Button, ButtonGroup} from "@heroui/button";
+import {Input} from "@heroui/input";
+import {Card, CardHeader, CardBody, CardFooter} from "@heroui/card";
+import {Textarea} from "@heroui/input";
+import {Spinner} from "@heroui/spinner";
+
+import StatusBadge from "../ui/StatusBadge";
 
 
 const ServerForm = ({ initialData, onSubmit, isLoading }) => {
@@ -136,11 +129,11 @@ const ServerForm = ({ initialData, onSubmit, isLoading }) => {
             {initialData ? "Update your" : "Add a new"} server configuration for remote management
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardBody>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="serverName">Server Name</Label>
+                <h3 htmlFor="serverName">Server Name</h3>
                 <Input
                   id="serverName"
                   placeholder="e.g., Production Server"
@@ -154,7 +147,7 @@ const ServerForm = ({ initialData, onSubmit, isLoading }) => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="hostName">Hostname</Label>
+                <h3 htmlFor="hostName">Hostname</h3>
                 <Input
                   id="hostName"
                   placeholder="e.g., server.company.com"
@@ -170,7 +163,7 @@ const ServerForm = ({ initialData, onSubmit, isLoading }) => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="sshPort">SSH Port</Label>
+                <h3 htmlFor="sshPort">SSH Port</h3>
                 <Input
                   id="sshPort"
                   type="number"
@@ -187,7 +180,7 @@ const ServerForm = ({ initialData, onSubmit, isLoading }) => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="serverLocation">Server Location</Label>
+                <h3 htmlFor="serverLocation">Server Location</h3>
                 <Input
                   id="serverLocation"
                   placeholder="e.g., US East, Europe West"
@@ -202,7 +195,7 @@ const ServerForm = ({ initialData, onSubmit, isLoading }) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sshUsername">SSH Username</Label>
+              <h3 htmlFor="sshUsername">SSH Username</h3>
               <Input
                 id="sshUsername"
                 placeholder="e.g., root, ubuntu, admin"
@@ -216,7 +209,7 @@ const ServerForm = ({ initialData, onSubmit, isLoading }) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sshKey">SSH Private Key</Label>
+              <h3 htmlFor="sshKey">SSH Private Key</h3>
               <Textarea
                 id="sshKey"
                 placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
@@ -234,7 +227,7 @@ const ServerForm = ({ initialData, onSubmit, isLoading }) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sshPassword">SSH Password (Optional)</Label>
+              <h3 htmlFor="sshPassword">SSH Password (Optional)</h3>
               <Input
                 id="sshPassword"
                 type="password"
@@ -274,7 +267,7 @@ const ServerForm = ({ initialData, onSubmit, isLoading }) => {
                 <Button type="submit" disabled={isLoading}>
                   {isLoading ? (
                     <>
-                      <LoadingSpinner size="sm" />
+                      <Spinner size="sm" />
                       <span className="ml-2">Saving...</span>
                     </>
                   ) : (
@@ -284,10 +277,10 @@ const ServerForm = ({ initialData, onSubmit, isLoading }) => {
               </div>
             </div>
           </form>
-        </CardContent>
+        </CardBody>
       </Card>
 
-      <Dialog open={isTestModalOpen} onOpenChange={setIsTestModalOpen}>
+      {/*<Dialog open={isTestModalOpen} onOpenChange={setIsTestModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Test SSH Connection</DialogTitle>
@@ -299,7 +292,7 @@ const ServerForm = ({ initialData, onSubmit, isLoading }) => {
           <div className="flex flex-col items-center space-y-4 py-6">
             {isTestingConnection ? (
               <>
-                <LoadingSpinner size="lg" />
+                <Spinner size="lg" />
                 <p className="text-sm text-gray-600">Connecting to server...</p>
               </>
             ) : testResult ? (
@@ -327,7 +320,7 @@ const ServerForm = ({ initialData, onSubmit, isLoading }) => {
             </Button>
           </div>
         </DialogContent>
-      </Dialog>
+      </Dialog>*/}
     </>
   );
 };

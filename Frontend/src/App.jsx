@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import {DashboardLayout} from './components/Layout/DashboardLayout'
-import CloudflareAccounts from './pages/CloudflareAccounts';
+import DashboardLayout from './components/Layout/DashboardLayout'
 import CloudflareAccounts from './pages/CloudflareAccounts';
 import AddCloudflareAccount from './pages/AddCloudflareAccount';
 import EditCloudflareAccount from './pages/EditCloudflareAccount';

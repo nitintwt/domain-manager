@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate} from 'react-router-dom';
 import { Toaster, toast } from 'sonner';
-import { Button } from '@nextui-org/button';
+import { Button } from '@heroui/button';
 import axios from 'axios';
-import {Card, CardHeader, CardBody, CardFooter} from "@nextui-org/card";
-import {Input} from "@nextui-org/input";
+import {Card, CardHeader, CardBody, CardFooter} from "@heroui/card";
+import {Input} from "@heroui/input";
 
 export default function SignupBox() {
   const [name, setName] = useState('');
