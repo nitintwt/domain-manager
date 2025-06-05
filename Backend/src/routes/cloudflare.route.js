@@ -8,6 +8,6 @@ cloudFlareRouter.route("/cloudflare-account/:id").get(getCloudflareAccount)
 cloudFlareRouter.route("/cloudflare-accounts").post(addCloudflareAccount)
 cloudFlareRouter.route("/cloudflare-accounts/:id").put(updateCloudflareAccount)
 cloudFlareRouter.route("/cloudflare-accounts/:id").delete(deleteCloudflareAccount)
-cloudFlareRouter.route("/cloudflare-accounts/:id/test").post(testCloudflareCredentials)
+cloudFlareRouter.route("/cloudflare-accounts/test").post(testCloudflareCredentials)
 
 export default cloudFlareRouter

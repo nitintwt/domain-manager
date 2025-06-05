@@ -263,7 +263,9 @@ const CloudflareAccountForm = ({ initialData, onSubmit, isLoading }) => {
       <TestCredentialsModal 
         open={showTestModal} 
         onClose={() => setShowTestModal(false)}
-        accountId={initialData?.id || null}
+        credentials={{
+          apiToken: formData.apiToken,
+        }}
       />
     </div>
   );

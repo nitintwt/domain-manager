@@ -25,6 +25,7 @@ const getCloudflareAccounts = asyncHandler( async (req , res)=>{
     ) 
   }
 })
+
 const getCloudflareAccount = asyncHandler( async (req , res)=>{
   const id = req.params.id
   
@@ -125,48 +126,40 @@ const deleteCloudflareAccount = asyncHandler(async (req , res)=>{
 
 })
 
-const testCloudflareCredentials = asyncHandler( async (req , res)=>{
-  const {userId} = req.body
-  const id = req.params.id
-  try {
-    const user = await User.findById(userId)
-    if (!user){
-      return res.status(404).json(
-        {message: "User doesn't exist" }
-      )
-    }
-    const cloudflareAccount = await Cloudflare.findById(id)
-    if (!cloudflareAccount) {
-      return res.status(404).json({ message: "Cloudflare account not found" });
-    }
+const testCloudflareCredentials = asyncHandler(async (req, res) => {
+  const { apiToken } = req.body;
 
-    const decryptedToken = decrypt(
-      cloudflareAccount.apiToken,
-      cloudflareAccount.tokenIV,
-      cloudflareAccount.tokenTag
+  if (!apiToken) {
+    return res.status(400).json(
+      new ApiResponse(400, null, "API token is required")
     );
+  }
 
+  try {
     const response = await axios.get(
       "https://api.cloudflare.com/client/v4/user/tokens/verify",
       {
         headers: {
-          Authorization: `Bearer ${decryptedToken}`,
-          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiToken}`,
         },
       }
     );
-    if (response.data && response.data.success) {
-      return res
-        .status(200)
-        .json(new ApiResponse(200, null, "Cloudflare credentials are valid."));
+    console.log("ress" , response)
+
+    if (response.data?.success) {
+      return res.status(200).json(
+        new ApiResponse(200, { valid: true }, "Cloudflare credentials are valid")
+      );
     } else {
-      return res.status(401).json({ message: "Invalid Cloudflare token." });
+      return res.status(401).json(
+        new ApiResponse(401, { valid: false }, "Invalid Cloudflare token")
+      );
     }
   } catch (error) {
-    console.error("Something went wrong while testing your cloudflare account" , error)
-    return res.status(500).json(
-      {message: "Something went wrong while testing your cloudflare account"}
-    )
+    console.error("Cloudflare API Error:", error);
+    return res.status(401).json(
+      new ApiResponse(401, { valid: false }, "Failed to verify Cloudflare token")
+    );
   }
 })
 

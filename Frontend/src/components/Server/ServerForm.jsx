@@ -17,16 +17,20 @@ const ServerForm = ({ initialData, onSubmit, isLoading }) => {
     sshPort: initialData?.sshPort || 22,
     serverLocation: initialData?.serverLocation || "",
     sshUsername: initialData?.sshUsername || "",
+    sshKey: initialData?.sshKey || "",
     sshPassword: initialData?.sshPassword || "",
   });
 
+  const [authMethod, setAuthMethod] = useState(
+    initialData?.sshKey ? "key" : "password"
+  );
   const [errors, setErrors] = useState({});
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
 
-    const validate = () => {
-    const newErrors= {};
+  const validate = () => {
+    const newErrors = {};
 
     if (!formData.serverName.trim()) {
       newErrors.serverName = "Server name is required";
@@ -48,38 +52,27 @@ const ServerForm = ({ initialData, onSubmit, isLoading }) => {
       newErrors.sshUsername = "SSH username is required";
     }
 
+    // Validate based on selected auth method
+    if (authMethod === "key" && !formData.sshKey.trim()) {
+      newErrors.sshKey = "SSH key is required";
+    }
+    if (authMethod === "password" && !formData.sshPassword.trim()) {
+      newErrors.sshPassword = "SSH password is required";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-    const validateTestFields = () => {
-    const testErrors = {};
-
-    if (!formData.hostName.trim()) {
-      testErrors.hostName = "Hostname is required";
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: "" }));
     }
-
-    if (!formData.sshPort || formData.sshPort < 1 || formData.sshPort > 65535) {
-      testErrors.sshPort = "SSH port must be between 1 and 65535";
-    }
-
-    if (!formData.sshUsername.trim()) {
-      testErrors.sshUsername = "SSH username is required";
-    }
-
-    if (!formData.sshKey.trim() && !formData.sshPassword.trim()) {
-      testErrors.sshKey = "Either SSH key or password is required";
-      testErrors.sshPassword = "Either SSH key or password is required";
-    }
-
-    setErrors(testErrors);
-    return Object.keys(testErrors).length === 0;
   };
 
-    const handleTestConnection = async () => {
-    if (!validateTestFields()) {
-      return;
-    }
+  const handleTestConnection = async () => {
+    if (!validate()) return;
 
     setIsTestingConnection(true);
     setIsTestModalOpen(true);
@@ -88,10 +81,7 @@ const ServerForm = ({ initialData, onSubmit, isLoading }) => {
     try {
       // Simulate SSH connection test
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Simulate random success/failure for demo
-      const isSuccess = Math.random() > 0.3;
-      setTestResult(isSuccess ? "success" : "error");
+      setTestResult("success");
     } catch (error) {
       setTestResult("error");
     } finally {
@@ -102,15 +92,14 @@ const ServerForm = ({ initialData, onSubmit, isLoading }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (validate()) {
-      await onSubmit(formData);
-      navigate('/servers')
-    }
-  };
-
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: "" }));
+      // Clear unused auth method before submitting
+      const submissionData = {
+        ...formData,
+        sshKey: authMethod === "key" ? formData.sshKey : "",
+        sshPassword: authMethod === "password" ? formData.sshPassword : "",
+      };
+      await onSubmit(submissionData);
+      navigate('/servers');
     }
   };
 
@@ -134,6 +123,7 @@ const ServerForm = ({ initialData, onSubmit, isLoading }) => {
 
           <CardBody className="p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Server Details Section */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Server Name Field */}
                 <div className="space-y-2">
@@ -219,11 +209,46 @@ const ServerForm = ({ initialData, onSubmit, isLoading }) => {
                 )}
               </div>
 
-              {/* SSH Authentication Fields */}
-              <div className="space-y-6">
+              {/* Authentication Method Selection */}
+              <div className="space-y-4">
+                <label className="block text-sm font-medium text-gray-700">
+                  Authentication Method <span className="text-red-500">*</span>
+                </label>
+                <div className="flex space-x-4">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      checked={authMethod === "key"}
+                      onChange={() => {
+                        setAuthMethod("key");
+                        setFormData(prev => ({ ...prev, sshPassword: "" }));
+                        setErrors({});
+                      }}
+                      className="text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">SSH Key</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      checked={authMethod === "password"}
+                      onChange={() => {
+                        setAuthMethod("password");
+                        setFormData(prev => ({ ...prev, sshKey: "" }));
+                        setErrors({});
+                      }}
+                      className="text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">Password</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Conditional Authentication Fields */}
+              {authMethod === "key" ? (
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">
-                    SSH Private Key
+                    SSH Private Key <span className="text-red-500">*</span>
                   </label>
                   <Textarea
                     value={formData.sshKey}
@@ -236,10 +261,10 @@ const ServerForm = ({ initialData, onSubmit, isLoading }) => {
                     <p className="text-sm text-red-600">{errors.sshKey}</p>
                   )}
                 </div>
-
+              ) : (
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">
-                    SSH Password
+                    SSH Password <span className="text-red-500">*</span>
                   </label>
                   <Input
                     type="password"
@@ -251,12 +276,10 @@ const ServerForm = ({ initialData, onSubmit, isLoading }) => {
                   {errors.sshPassword && (
                     <p className="text-sm text-red-600">{errors.sshPassword}</p>
                   )}
-                  <p className="text-xs text-gray-500">
-                    Either SSH key or password is required
-                  </p>
                 </div>
-              </div>
+              )}
 
+              {/* Form Actions */}
               <div className="flex justify-between items-center pt-6 border-t border-gray-200">
                 <Button
                   type="button"
@@ -298,6 +321,7 @@ const ServerForm = ({ initialData, onSubmit, isLoading }) => {
           </CardBody>
         </Card>
 
+        {/* Test Connection Modal */}
         <Modal
           isOpen={isTestModalOpen}
           onClose={() => !isTestingConnection && setIsTestModalOpen(false)}
