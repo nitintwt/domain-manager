@@ -8,6 +8,7 @@ import { Spinner } from "@heroui/spinner";
 import { ServerIcon, TestTubeIcon } from "lucide-react";
 import StatusBadge from "../ui/StatusBadge";
 import Modal from "../ui/Modal";
+import axios from "axios";
 
 const ServerForm = ({ initialData, onSubmit, isLoading }) => {
   const navigate = useNavigate();
@@ -72,22 +73,33 @@ const ServerForm = ({ initialData, onSubmit, isLoading }) => {
   };
 
   const handleTestConnection = async () => {
-    if (!validate()) return;
+  if (!validate()) return;
 
-    setIsTestingConnection(true);
-    setIsTestModalOpen(true);
-    setTestResult(null);
+  setIsTestingConnection(true);
+  setIsTestModalOpen(true);
+  setTestResult(null);
 
-    try {
-      // Simulate SSH connection test
-      await new Promise(resolve => setTimeout(resolve, 2000));
+  try {
+    const response = await axios.post("/api/v1/server/server-credentials/test", {
+        hostName: "",
+        sshPort: 22,
+        sshUsername: "nitin",
+        sshPassword: ""
+    });
+    console.log("server test",response)
+    if (response.data?.success) {
       setTestResult("success");
-    } catch (error) {
+    } else {
       setTestResult("error");
-    } finally {
-      setIsTestingConnection(false);
     }
-  };
+  } catch (error) {
+    console.error("SSH Test Error:", error.response?.data || error.message);
+    setTestResult("error");
+  } finally {
+    setIsTestingConnection(false);
+  }};
+
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();

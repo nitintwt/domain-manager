@@ -8,6 +8,6 @@ serverRouter.route("/server-credential/:id").get(getServer)
 serverRouter.route("/server-credentials").post(createServer)
 serverRouter.route("/server-credentials/:id").put(updateServer)
 serverRouter.route("/server-credentials/:id").delete(deleteServer)
-serverRouter.route("/server-credentials/:id/test").post(testServer)
+serverRouter.route("/server-credentials/test").post(testServer)
 
 export default serverRouter
