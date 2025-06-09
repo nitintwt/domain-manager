@@ -1,5 +1,4 @@
 import mongoose , {Schema} from "mongoose";
-import { type } from "os";
 
 const domainSchema = new Schema(
   {
@@ -10,13 +9,23 @@ const domainSchema = new Schema(
       type:Schema.Types.ObjectId,
       ref:"Cloudflare",
       required:true
-    }
-    ],
+    }],
     owner: [{
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true
-    }]
+    }],
+    serverId:[{
+      type: Schema.Types.ObjectId,
+      ref: "Server",
+      required: true
+    }],
+    isCloudflareValid:{
+      type:Boolean,
+    },
+    isCloudpanelValid:{
+      type:Boolean,
+    }
   }
 )
 

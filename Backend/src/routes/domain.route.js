@@ -1,12 +1,14 @@
 import { Router } from "express";
-import {createDomain, deleteDomain, getDomain, getDomains, updateDomain} from '../controllers/domain.controller.js'
+import {checkCloudflareValidity, checkServerValidity, createDomain, deleteDomain, getDomain, getDomains, updateDomain} from '../controllers/domain.controller.js'
 
 const domainRouter = Router()
 
-domainRouter.route("/").get(getDomains)
-domainRouter.route("/").get(getDomain)
-domainRouter.route("/").post(createDomain)
-domainRouter.route("/").put(updateDomain)
-domainRouter.route("/").delete(deleteDomain)
+domainRouter.route("/domain-names").get(getDomains)
+domainRouter.route("/domain-name/:id").get(getDomain)
+domainRouter.route("/domain-name").post(createDomain)
+domainRouter.route("/domain-name").put(updateDomain)
+domainRouter.route("/domain-name/:id").delete(deleteDomain)
+domainRouter.route("/cloudflare-validity").post(checkCloudflareValidity)
+domainRouter.route("/server-validity").post(checkServerValidity)
 
 export default domainRouter

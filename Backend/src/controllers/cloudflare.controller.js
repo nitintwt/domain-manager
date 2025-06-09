@@ -2,7 +2,6 @@ import { Cloudflare } from "../models/cloudflare.model.js";
 import { User } from "../models/user.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import { decrypt } from "../utils/decrypt.js"; 
 import axios from "axios";
 
 const getCloudflareAccounts = asyncHandler( async (req , res)=>{
