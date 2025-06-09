@@ -81,10 +81,10 @@ const ServerForm = ({ initialData, onSubmit, isLoading }) => {
 
   try {
     const response = await axios.post("/api/v1/server/server-credentials/test", {
-        hostName: "",
-        sshPort: 22,
-        sshUsername: "nitin",
-        sshPassword: ""
+        hostName: formData.hostName,
+        sshPort: formData.sshPort,
+        sshUsername: formData.sshUsername,
+        sshPassword: formData.sshPassword
     });
     console.log("server test",response)
     if (response.data?.success) {

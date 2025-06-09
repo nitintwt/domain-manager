@@ -120,7 +120,6 @@ const deleteServer = asyncHandler( async ( req , res)=>{
 
 })
 
-
 const testServer = asyncHandler(async (req, res) => {
   const { hostName, sshPort = 22, sshUsername, sshKey, sshPassword } = req.body;
 
