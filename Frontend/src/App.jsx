@@ -10,6 +10,7 @@ import EditServer from './pages/EditServer';
 import NotFound from './pages/NotFound';
 import Login from './pages/Login';
 import Signup from './pages/Signup'
+import Domain from "./pages/Domain";
 
 const App = () => (
   <BrowserRouter>
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="servers" element={<Servers />} />
           <Route path="servers/add" element={<AddServer />} />
           <Route path="servers/edit/:id" element={<EditServer />} />
+          <Route path="domain" element={<Domain/>}/>
         </Route>
       </Route>
       <Route path="*" element={<NotFound />} />

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Cloud, Server, X, LayoutDashboard } from "lucide-react";
+import { Cloud, Server, X, LayoutDashboard} from "lucide-react";
 import { cn } from "../../lib/utils";
 
 const navigation = [
@@ -13,6 +13,11 @@ const navigation = [
     href: "/servers", 
     icon: Server,
   },
+  {
+    name:"Domains",
+    href:"/domain",
+    icon:Server
+  }
 ];
 
 const Sidebar = ({ onClose }) => {
