@@ -39,7 +39,7 @@ const getDomain = asyncHandler(async (req , res)=>{
 })
 
 const createDomain = asyncHandler(async (req , res)=>{
-  const {userId , domainName , cloudflareAccountId , serverId}= req.body
+  const {userId , domains , cloudflareAccountId , serverId}= req.body
   try {
     const user = await User.findById(userId)
     if(!user){
@@ -48,15 +48,17 @@ const createDomain = asyncHandler(async (req , res)=>{
       )
     }
 
-    const domain = await Domain.create({
+    const response = await Promise.all(domains.map( async (domain)=>{
+      await Domain.create({
       owner:userId,
       cloudflareAccountId:cloudflareAccountId,
       serverId:serverId,
-      domainName:domainName
-    })
+      domainName:domain
+      })
+    }))
 
     return res.status(200).json(
-      new ApiResponse(200 , domain , "Domain created successfully")
+      new ApiResponse(200 , response , "Domain created successfully")
     )
   } catch (error) {
     console.log("Something went wrong while creating domain" , error)
@@ -106,27 +108,33 @@ const deleteDomain = asyncHandler( async ( req , res)=>{
 })
 
 const checkCloudflareValidity = asyncHandler ( async ( req , res)=>{
-  const {domainName , cloudflareAccountId}= req.body
+  const {domainId}= req.body
   try {
-    const cloudflare = await Cloudflare.findById(cloudflareAccountId)
+    const domain = await Domain.findById(domainId)
+    const cloudflare = await Cloudflare.findById(domain.cloudflareAccountId)
     const token = decrypt( cloudflare.apiToken , cloudflare.tokenIV , cloudflare.tokenTag)
     const response = await axios.get(
-      `https://api.cloudflare.com/client/v4/zones?name=${domainName}`,
+      `https://api.cloudflare.com/client/v4/zones?name=${domain.domainName}`,
       {
         headers:{
           Authorization: `Bearer ${token}`
         }
       }
     )
-    if (response.data?.success) {
-      await Domain.findOneAndUpdate({domainName:domainName}, {isCloudflareValid:true})
+    if (response.data?.success && response.data.result.length >0) {
+      domain.isCloudflareValid=true
+      domain.lastValidityChecked= new Date()
+      await domain.save()
       return res.status(200).json(
         new ApiResponse(200, { valid: true }, "DomainName is valid in Cloudflare")
       );
       
     } else {
-      return res.status(401).json(
-        new ApiResponse(401, { valid: false }, "DomainName is invalid in Cloudflare")
+      domain.isCloudflareValid=false
+      domain.lastValidityChecked= new Date()
+      await domain.save()
+      return res.status(200).json(
+        new ApiResponse(200, { valid: false }, "DomainName is invalid in Cloudflare")
       );
     }
   } catch (error) {
@@ -138,15 +146,17 @@ const checkCloudflareValidity = asyncHandler ( async ( req , res)=>{
 })
 
 const checkServerValidity = asyncHandler ( async ( req , res)=>{
-  const {domainName , serverId} = req.body
+  const {domainId} = req.body
   try {
-    const server = await Server.findById(serverId)
+    const domain = await Domain.findById(domainId)
+    const server = await Server.findById(domain.serverId)
     const password = decrypt(server.sshPassword , server.tokenIV , server.tokenTag)
     
   const conn = new Client()
+  console.log("checkkk server" , domain.domainName)
   conn
     .on("ready", () => {
-      conn.exec(`echo "${password}" | sudo -S sh -c 'find /home/*/htdocs/ -type d -name "${domainName}"'`, (err, stream) => {
+      conn.exec(`echo "${password}" | sudo -S sh -c 'find /home/*/htdocs/ -type d -name "${domain.domainName}" -wholename "*/htdocs/${domain.domainName}"'`, (err, stream) => {
         if (err) {
           conn.end();
           return res.status(500).json({ message: "Domain name not found in the server" });
@@ -160,14 +170,16 @@ const checkServerValidity = asyncHandler ( async ( req , res)=>{
             const cleanedOutput = output.replace(/\[sudo\] password for nitin:\s*/, "").trim();
 
             if (!cleanedOutput || cleanedOutput.includes("No such file or directory")) {
-              return res.status(404).json({
-                message: "Domain name not found in the server",
-                output: cleanedOutput
-              });
+              domain.isCloudpanelValid=false
+              await domain.save()
+              return res.status(200).json(
+                new ApiResponse(200, { valid: false }, "DomainName not found in the server")
+              )
             }
-            await Domain.findOneAndUpdate({domainName:domainName}, {isCloudpanelValid:true})
+            domain.isCloudpanelValid=true
+            await domain.save()
             return res.status(200).json(
-              new ApiResponse(200, { output: cleanedOutput }, "Domain name found in the server")
+              new ApiResponse(200, { valid: true }, "Domain name found in the server")
             );
           })
           .on("data", (data) => {

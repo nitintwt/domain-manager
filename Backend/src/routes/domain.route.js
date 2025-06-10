@@ -8,7 +8,7 @@ domainRouter.route("/domain-name/:id").get(getDomain)
 domainRouter.route("/domain-name").post(createDomain)
 domainRouter.route("/domain-name").put(updateDomain)
 domainRouter.route("/domain-name/:id").delete(deleteDomain)
-domainRouter.route("/cloudflare-validity").post(checkCloudflareValidity)
-domainRouter.route("/server-validity").post(checkServerValidity)
+domainRouter.route("/cloudflare-validity").put(checkCloudflareValidity)
+domainRouter.route("/server-validity").put(checkServerValidity)
 
 export default domainRouter

@@ -5,26 +5,29 @@ const domainSchema = new Schema(
     domainName:{
       type:String
     },
-    cloudflareAccountId:[{
+    cloudflareAccountId:{
       type:Schema.Types.ObjectId,
       ref:"Cloudflare",
       required:true
-    }],
-    owner: [{
+    },
+    owner: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true
-    }],
-    serverId:[{
+    },
+    serverId:{
       type: Schema.Types.ObjectId,
       ref: "Server",
       required: true
-    }],
+    },
     isCloudflareValid:{
       type:Boolean,
     },
     isCloudpanelValid:{
       type:Boolean,
+    },
+    lastValidityChecked:{
+      type:String
     }
   }
 )
