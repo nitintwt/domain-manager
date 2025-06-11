@@ -8,20 +8,33 @@ import axios from 'axios'
 import {Server} from "../models/server.model.js"
 import { Client } from "ssh2";
 
-const getDomains = asyncHandler(async (req , res)=>{
-  const {userId} = req.query
+const getDomains = asyncHandler(async (req, res) => {
+  const { userId } = req.query;
+
   try {
-    const domains = await Domain.find({owner:userId})
-    return res.status(200).json(
-      new ApiResponse(200 , domains , "Domains fetched successfully")
-    )
+    const domains = await Domain.find({ owner: userId })
+      .populate({
+        path: "cloudflareAccount",
+        select: "accountName"
+      })
+      .populate({
+        path: "server",
+        select: "serverName"
+      });
+
+    return res.status(200).json({
+      success: true,
+      data: domains,
+      message: "Domains fetched successfully"
+    });
   } catch (error) {
-    console.log("Something went wrong while fetching domains" , error)
-    return res.status(500).json(
-      new ApiResponse(500 , null , "Something went wrong while fetching domains")
-    )
+    console.error("Error fetching domains:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch domains"
+    });
   }
-})
+});
 
 const getDomain = asyncHandler(async (req , res)=>{
   const id= req.params.id
@@ -51,8 +64,8 @@ const createDomain = asyncHandler(async (req , res)=>{
     const response = await Promise.all(domains.map( async (domain)=>{
       await Domain.create({
       owner:userId,
-      cloudflareAccountId:cloudflareAccountId,
-      serverId:serverId,
+      cloudflareAccount:cloudflareAccountId,
+      server:serverId,
       domainName:domain
       })
     }))
@@ -87,7 +100,7 @@ const checkCloudflareValidity = asyncHandler ( async ( req , res)=>{
   const {domainId}= req.body
   try {
     const domain = await Domain.findById(domainId)
-    const cloudflare = await Cloudflare.findById(domain.cloudflareAccountId)
+    const cloudflare = await Cloudflare.findById(domain.cloudflareAccount)
     const token = decrypt( cloudflare.apiToken , cloudflare.tokenIV , cloudflare.tokenTag)
     const response = await axios.get(
       `https://api.cloudflare.com/client/v4/zones?name=${domain.domainName}`,
@@ -98,7 +111,7 @@ const checkCloudflareValidity = asyncHandler ( async ( req , res)=>{
       }
     )
     if (response.data?.success && response.data.result.length >0) {
-      domain.isCloudflareValid=true
+      domain.cloudflareStatus="valid"
       domain.lastValidityChecked= new Date()
       await domain.save()
       return res.status(200).json(
@@ -106,7 +119,7 @@ const checkCloudflareValidity = asyncHandler ( async ( req , res)=>{
       );
       
     } else {
-      domain.isCloudflareValid=false
+      domain.cloudflareStatus="invalid"
       domain.lastValidityChecked= new Date()
       await domain.save()
       return res.status(200).json(
@@ -125,7 +138,7 @@ const checkServerValidity = asyncHandler ( async ( req , res)=>{
   const {domainId} = req.body
   try {
     const domain = await Domain.findById(domainId)
-    const server = await Server.findById(domain.serverId)
+    const server = await Server.findById(domain.server)
     const password = decrypt(server.sshPassword , server.tokenIV , server.tokenTag)
     
   const conn = new Client()
@@ -145,13 +158,13 @@ const checkServerValidity = asyncHandler ( async ( req , res)=>{
             const cleanedOutput = output.replace(/\[sudo\] password for nitin:\s*/, "").trim();
 
             if (!cleanedOutput || cleanedOutput.includes("No such file or directory")) {
-              domain.isCloudpanelValid=false
+              domain.serverStatus="invalid"              
               await domain.save()
               return res.status(200).json(
                 new ApiResponse(200, { valid: false }, "DomainName not found in the server")
               )
             }
-            domain.isCloudpanelValid=true
+            domain.serverStatus="valid"
             await domain.save()
             return res.status(200).json(
               new ApiResponse(200, { valid: true }, "Domain name found in the server")

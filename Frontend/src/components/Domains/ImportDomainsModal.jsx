@@ -5,7 +5,7 @@ import {useCookies} from 'react-cookie'
 import axios from 'axios'
 import { Toaster, toast } from 'sonner';
 
-const ImportDomainsModal = ({ isOpen, onClose, onSubmit }) => {
+const ImportDomainsModal = ({ isOpen, onClose, fetchDomains }) => {
   const [domains , setDomains]= useState('')
   const [showPreview, setShowPreview] = useState(false);
   const [cloudflareAccount , setCloudflareAccount]= useState()
@@ -38,6 +38,7 @@ const ImportDomainsModal = ({ isOpen, onClose, onSubmit }) => {
       })
       console.log('imported' , response)
       onClose()
+      fetchDomains()
       setDomains('')
       setCloudflareAccount('')
       setCloudPanelServer('')

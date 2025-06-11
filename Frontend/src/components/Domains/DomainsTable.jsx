@@ -1,27 +1,13 @@
-import { useState } from "react";
-import { Check, X, RefreshCw, Globe, RotateCw, Axis3D , Trash2} from "lucide-react";
+import {Trash2} from "lucide-react";
 import { Button } from "@heroui/button";
 
-
-const actionOptions = [
-  { id: 1, name: "Select" },
-  { id: 2, name: "Delete" },
-  { id: 3, name: "Clear Cache" }
-];
-
-const EnhancedDomainsTable = ({ domains, onAction, onCheckDomain, onCheckAllDomains }) => {
-  const [selectedActions, setSelectedActions] = useState({});
-
-  const handleActionChange = (domainId, action) => {
-    setSelectedActions(prev => ({ ...prev, [domainId]: action }));
-    onAction(domainId, action);
-  };
+const EnhancedDomainsTable = ({ domains, checkSingleDomain, checkAllDomains , handleDelete }) => {
 
   const getStatusBadge = (status, type) => {
     const baseClasses = "px-2 py-1 text-xs font-medium rounded-full";
     
     if (type === 'general') {
-      switch (status.toLowerCase()) {
+      switch (status?.toLowerCase()) {
         case "active":
           return `${baseClasses} bg-green-100 text-green-800`;
         case "pending":
@@ -33,7 +19,7 @@ const EnhancedDomainsTable = ({ domains, onAction, onCheckDomain, onCheckAllDoma
       }
     }
     
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase()) {
       case "valid":
         return `${baseClasses} bg-green-100 text-green-800`;
       case "invalid":
@@ -46,6 +32,13 @@ const EnhancedDomainsTable = ({ domains, onAction, onCheckDomain, onCheckAllDoma
         return `${baseClasses} bg-gray-100 text-gray-800`;
     }
   };
+
+    const formatLastChecked = (date) => {
+      if (!date) return "Never";
+      return new Intl.DateTimeFormat("default", {
+        dateStyle: "medium",
+        timeStyle: "short"
+      }).format(new Date(date))}
 
   if (domains.length === 0) {
     return (
@@ -66,7 +59,7 @@ const EnhancedDomainsTable = ({ domains, onAction, onCheckDomain, onCheckAllDoma
       <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
         <h3 className="text-lg font-medium text-gray-900">Domains ({domains.length})</h3>
         <button
-          onClick={onCheckAllDomains}
+          onClick={checkAllDomains}
           className="px-3 py-1 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           Check All Domains
@@ -102,16 +95,16 @@ const EnhancedDomainsTable = ({ domains, onAction, onCheckDomain, onCheckAllDoma
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {domains.map((domain) => (
-              <tr key={domain.id} className="hover:bg-gray-50">
+              <tr key={domain._id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">{domain.domainName}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{domain.cloudflareAccount}</div>
+                  <div className="text-sm text-gray-900">{domain.cloudflareAccount.accountName}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
-                    {domain.server || (
+                    {domain?.server?.serverName || (
                       <span className="text-gray-400 italic">No server</span>
                     )}
                   </div>
@@ -122,22 +115,13 @@ const EnhancedDomainsTable = ({ domains, onAction, onCheckDomain, onCheckAllDoma
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={getStatusBadge(domain.cloudpanelStatus, 'cloudpanel')}>
-                    {domain.cloudpanelStatus}
+                  <span className={getStatusBadge(domain?.serverStatus, 'cloudpanel')}>
+                    {domain?.serverStatus}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900 flex items-center space-x-2">
-                    <span>{domain.lastChecked}</span>
-                    <button
-                      onClick={() => onCheckDomain(domain.id)}
-                      className="text-blue-600 hover:text-blue-800 focus:outline-none"
-                      title="Refresh status"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                    </button>
+                    <span>{formatLastChecked(domain.lastValidityChecked)}</span>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -147,7 +131,9 @@ const EnhancedDomainsTable = ({ domains, onAction, onCheckDomain, onCheckAllDoma
                       onClick={() => checkSingleDomain(domain._id)}
                       className="text-gray-600 hover:text-blue-600 hover:bg-blue-50"
                     >
-                      <RotateCw className="h-4 w-4" />
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
                     </Button>
                     <Button
                       variant="ghost"

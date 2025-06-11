@@ -1,101 +1,105 @@
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import PageHeader from "../components/ui/PageHeader";
 import { Button } from "@heroui/button";
 import CreateDomainModal from "../components/Domains/CreateDomainModal";
 import ImportDomainsModal from "../components/Domains/ImportDomainsModal";
 import DomainsTable from "../components/Domains/DomainsTable";
 import { Toaster, toast } from 'sonner';
+import axios from 'axios'
+import { useCookies } from 'react-cookie';
 
-
-// Enhanced mock data for domains with status information
-const mockDomains = [
-  {
-    id: 1,
-    domainName: "example.com",
-    cloudflareAccount: "Main Account",
-    server: "Production Server",
-    status: "Active",
-    cloudflareStatus: "Valid",
-    cloudpanelStatus: "Valid",
-    lastChecked: "2024-01-15 10:30:00",
-    createdAt: "2024-01-15"
-  },
-  {
-    id: 2,
-    domainName: "test.com",
-    cloudflareAccount: "Dev Account",
-    server: null,
-    status: "Active",
-    cloudflareStatus: "Valid",
-    cloudpanelStatus: "Not Configured",
-    lastChecked: "2024-01-20 09:15:00",
-    createdAt: "2024-01-20"
-  },
-  {
-    id: 3,
-    domainName: "staging.app",
-    cloudflareAccount: "Main Account",
-    server: "Staging Server",
-    status: "Pending",
-    cloudflareStatus: "Invalid",
-    cloudpanelStatus: "Valid",
-    lastChecked: "2024-02-01 14:45:00",
-    createdAt: "2024-02-01"
-  }
-];
 
 const Domains = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [domains, setDomains] = useState(mockDomains);
+  const [isCheckingAll, setIsCheckingAll] = useState(false);
+  const [cookies, setCookies] = useCookies();
+  const [domains, setDomains] = useState([]);
 
-  const handleCreateDomain = (domainData) => {
-    const newDomain = {
-      id: domains.length + 1,
-      domainName: domainData.domainName,
-      cloudflareAccount: domainData.cloudflareAccount,
-      server: domainData.server || null,
-      status: "Pending",
-      cloudflareStatus: "Pending",
-      cloudpanelStatus: domainData.server ? "Pending" : "Not Configured",
-      lastChecked: new Date().toISOString().replace('T', ' ').split('.')[0],
-      createdAt: new Date().toISOString().split('T')[0]
-    };
-    setDomains([...domains, newDomain]);
-    setIsCreateModalOpen(false);
+  const fetchDomains = async () => {
+    try {
+      const response = await axios.get(`/api/v1/domain/domain-names?userId=${cookies.userData?._id}`);
+      setDomains(response.data.data);
+    } catch (error) {
+      console.log("Something went wrong while fetching domains", error);
+      toast.error("Failed to fetch domains.");
+    }
+  }
+
+  const checkSingleDomain = async (id) => {
+    setDomains(prev => prev.map(d =>
+      d._id === id
+        ? { ...d, cloudflareStatus: "checking", serverStatus: "checking" }
+        : d
+    ));
+    try {
+      const [cfResponse, cpResponse] = await Promise.all([
+        axios.put(`/api/v1/domain/cloudflare-validity`, { domainId: id }),
+        axios.put(`/api/v1/domain/server-validity`, { domainId: id })
+      ]);
+
+      setDomains(prev => prev.map(d =>
+        d._id === id
+          ? {
+            ...d,
+            serverStatus: cpResponse.data.data.valid ? "valid" : "invalid",
+            cloudflareStatus: cfResponse.data.data.valid ? "valid" : "invalid",
+            lastValidityChecked: new Date().toLocaleString()
+          }
+          : d
+      ));
+    } catch (error) {
+       console.error("Domain check error:", error);
+      }
+  }
+
+  const checkAllDomains = async () => {
+    setIsCheckingAll(true);
+    setDomains(prev => prev.map(d => ({
+      ...d,cloudflareStatus: "checking",serverStatus: "checking"
+    })));
+
+    try {
+      const reponse = await Promise.all( domains.map(async (domain)=>{
+        const [cfResponse, cpResponse] = await Promise.all([
+          axios.put(`/api/v1/domain/cloudflare-validity`, { domainId: domain._id }),
+          axios.put(`/api/v1/domain/server-validity`, { domainId: domain._id })
+        ]);
+
+        setDomains(prev => prev.map(d =>
+          d._id === domain._id
+            ? {
+              ...d,
+              serverStatus: cpResponse.data.data.valid ? "valid" : "invalid",
+              cloudflareStatus: cfResponse.data.data.valid ? "valid" : "invalid",
+              lastValidityChecked: new Date().toLocaleString()
+            }
+            : d
+          )
+        );
+      }))
+      console.log("all domains" , reponse)
+    } catch (error) {
+      console.log("Something went wrong while checking all domains")
+    } finally{
+      setIsCheckingAll(false)
+    }
   };
 
-  const handleImportDomains = (importData) => {
-    const newDomains = importData.domains.map((domain, index) => ({
-      id: domains.length + index + 1,
-      domainName: domain,
-      cloudflareAccount: importData.cloudflareAccount,
-      server: importData.server || null,
-      status: "Pending",
-      cloudflareStatus: "Pending",
-      cloudpanelStatus: importData.server ? "Pending" : "Not Configured",
-      lastChecked: new Date().toISOString().replace('T', ' ').split('.')[0],
-      createdAt: new Date().toISOString().split('T')[0]
-    }));
-    setDomains([...domains, ...newDomains]);
-    setIsImportModalOpen(false);
-  };
+  const handleDelete = async (id)=>{
+    try {
+      await axios.delete(`/api/v1/domain/domain-name/${id}`)
+      toast.success("Domain deleted successfully")
+      fetchDomains()
+    } catch (error) {
+      console.log("Something went worng while deleting your domain")
+      toast.error("Something went wrong")
+    }
+  }
 
-  const handleDomainAction = (domainId, action) => {
-    console.log(`${action} action for domain ${domainId}`);
-    // Placeholder for domain actions
-  };
-
-  const handleCheckDomain = (domainId) => {
-    console.log(`Checking domain ${domainId}`);
-    // Placeholder for status check
-  };
-
-  const handleCheckAllDomains = () => {
-    console.log("Checking all domains");
-    // Placeholder for bulk status check
-  };
+  useEffect(()=>{
+    fetchDomains()
+  },[])
 
   return (
     <div>
@@ -116,24 +120,23 @@ const Domains = () => {
           </div>
         }
       />
-
       <DomainsTable 
-        domains={domains} 
-        onAction={handleDomainAction}
-        onCheckDomain={handleCheckDomain}
-        onCheckAllDomains={handleCheckAllDomains}
+        domains={domains}
+        checkSingleDomain={checkSingleDomain}
+        checkAllDomains={checkAllDomains}
+        handleDelete={handleDelete}
       />
 
       <CreateDomainModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onSubmit={handleCreateDomain}
+        
       />
 
       <ImportDomainsModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
-        onSubmit={handleImportDomains}
+        fetchDomains={fetchDomains}
       />
       <Toaster
         position="bottom-center"

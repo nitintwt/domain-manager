@@ -5,7 +5,7 @@ const domainSchema = new Schema(
     domainName:{
       type:String
     },
-    cloudflareAccountId:{
+    cloudflareAccount:{
       type:Schema.Types.ObjectId,
       ref:"Cloudflare",
       required:true
@@ -15,16 +15,19 @@ const domainSchema = new Schema(
       ref: "User",
       required: true
     },
-    serverId:{
+    server:{
       type: Schema.Types.ObjectId,
       ref: "Server",
-      required: true
     },
-    isCloudflareValid:{
-      type:Boolean,
+    cloudflareStatus:{
+      type:String,
+      default:"pending"
     },
-    isCloudpanelValid:{
-      type:Boolean,
+    serverStatus:{
+      type:String,
+      default: function (){
+        return this.server ?"pending" : "not configured"
+      }
     },
     lastValidityChecked:{
       type:String
