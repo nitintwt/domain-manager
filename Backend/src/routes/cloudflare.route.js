@@ -1,5 +1,5 @@
 import {Router} from 'express'
-import { addCloudflareAccount, getCloudflareAccount,  deleteCloudflareAccount, getCloudflareAccounts, testCloudflareCredentials, updateCloudflareAccount } from '../controllers/cloudflare.controller.js'
+import { addCloudflareAccount, getCloudflareAccount,  deleteCloudflareAccount, getCloudflareAccounts, testCloudflareCredentials, updateCloudflareAccount, createDomainInCloudflare } from '../controllers/cloudflare.controller.js'
 
 const cloudFlareRouter = Router()
 
@@ -9,5 +9,6 @@ cloudFlareRouter.route("/cloudflare-accounts").post(addCloudflareAccount)
 cloudFlareRouter.route("/cloudflare-accounts/:id").put(updateCloudflareAccount)
 cloudFlareRouter.route("/cloudflare-accounts/:id").delete(deleteCloudflareAccount)
 cloudFlareRouter.route("/cloudflare-accounts/test").post(testCloudflareCredentials)
+cloudFlareRouter.route("/cloudflare-accounts/createDomain").post(createDomainInCloudflare)
 
 export default cloudFlareRouter

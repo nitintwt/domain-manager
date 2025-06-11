@@ -3,6 +3,7 @@ import { User } from "../models/user.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import axios from "axios";
+import { decrypt } from "../utils/decrypt.js";
 
 const getCloudflareAccounts = asyncHandler( async (req , res)=>{
   const {userId} = req.query
@@ -143,7 +144,6 @@ const testCloudflareCredentials = asyncHandler(async (req, res) => {
         },
       }
     );
-    console.log("ress" , response)
 
     if (response.data?.success) {
       return res.status(200).json(
@@ -162,4 +162,29 @@ const testCloudflareCredentials = asyncHandler(async (req, res) => {
   }
 })
 
-export {getCloudflareAccounts , addCloudflareAccount , updateCloudflareAccount , deleteCloudflareAccount , testCloudflareCredentials , getCloudflareAccount}
+const createDomainInCloudflare = asyncHandler( async (req , res)=>{
+  const { cloudflareAccountId }= req.body
+  try {
+    const cloudflare = await Cloudflare.findById(cloudflareAccountId)
+    const token = decrypt( cloudflare.apiToken , cloudflare.tokenIV , cloudflare.tokenTag)
+    const response = await axios.get(
+      "https://api.cloudflare.com/client/v4/accounts",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    console.log("reponse" , response.data)
+    return res.status(200).json(
+      new ApiResponse(200, { valid: true }, "Cloudflare account created successfully")
+    );
+  } catch (error) {
+    console.error("Failed to create domain in Cloudflare account", error);
+    return res.status(401).json(
+      new ApiResponse(401, { valid: false }, "Failed to create domain in Cloudflare account")
+    );
+  }
+})
+
+export {getCloudflareAccounts , addCloudflareAccount , updateCloudflareAccount , deleteCloudflareAccount , testCloudflareCredentials , getCloudflareAccount, createDomainInCloudflare}

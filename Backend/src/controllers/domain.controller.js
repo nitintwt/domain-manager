@@ -68,30 +68,6 @@ const createDomain = asyncHandler(async (req , res)=>{
   }
 })
 
-const updateDomain = asyncHandler( async (req , res)=>{
-  const {userId , id} = req.body
-  try {
-    const user = await User.findById(userId)
-    if(!user){
-      return res.status(404).json(
-        new ApiResponse(404 , null , "User not found")
-      )
-    }
-
-    const updatedDomain = await Domain.findByIdAndUpdate(id, {
-
-    })
-    return res.status(200).json(
-      new ApiResponse(200 , updateDomain , "Domain updated successfully")
-    )
-  } catch (error) {
-    console.log("Something went wrong while updating domain" , error)
-    return res.status(500).json(
-      new ApiResponse(500 , null , "Something went wrong while updating domain")
-    )
-  }
-})
-
 const deleteDomain = asyncHandler( async ( req , res)=>{
   const id = req.params.id
   try {
@@ -153,7 +129,7 @@ const checkServerValidity = asyncHandler ( async ( req , res)=>{
     const password = decrypt(server.sshPassword , server.tokenIV , server.tokenTag)
     
   const conn = new Client()
-  console.log("checkkk server" , domain.domainName)
+
   conn
     .on("ready", () => {
       conn.exec(`echo "${password}" | sudo -S sh -c 'find /home/*/htdocs/ -type d -name "${domain.domainName}" -wholename "*/htdocs/${domain.domainName}"'`, (err, stream) => {
@@ -161,7 +137,6 @@ const checkServerValidity = asyncHandler ( async ( req , res)=>{
           conn.end();
           return res.status(500).json({ message: "Domain name not found in the server" });
         }
-
         let output = "";
         stream
           .on("close", async () => {
@@ -207,4 +182,4 @@ const checkServerValidity = asyncHandler ( async ( req , res)=>{
   }
 })
 
-export {getDomains , getDomain , createDomain , updateDomain , deleteDomain , checkCloudflareValidity , checkServerValidity}
+export {getDomains , getDomain , createDomain, deleteDomain , checkCloudflareValidity , checkServerValidity}
