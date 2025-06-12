@@ -1,9 +1,14 @@
-import {Trash2, BrushCleaning} from "lucide-react";
-import { Button } from "@heroui/button";
+import { useState } from "react";
+import { Trash2, RefreshCcw } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
+import ActionsDropdown from "../ui/ActionsDropdown";
+import CustomModal from "../ui/CustomModal";
 
-const EnhancedDomainsTable = ({ domains, setDomains , handleDelete , setIsCheckingAll}) => {
+const EnhancedDomainsTable = ({ domains, setDomains, handleDelete, setIsCheckingAll }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalAction, setModalAction] = useState(null);
+  const [selectedDomain, setSelectedDomain] = useState(null);
 
   const getStatusBadge = (status, type) => {
     const baseClasses = "px-2 py-1 text-xs font-medium rounded-full";
@@ -35,6 +40,29 @@ const EnhancedDomainsTable = ({ domains, setDomains , handleDelete , setIsChecki
     }
   }
 
+  const handleAction = (action, domainId) => {
+    switch (action) {
+      case "recheck":
+        checkSingleDomain(domainId);
+        break;
+      case "deleteDB":
+        handleDelete(domainId);
+        break;
+      case "deleteCloudflare":
+        setModalAction("cloudflare");
+        setSelectedDomain(domainId);
+        setIsModalOpen(true);
+        break;
+      case "deleteCloudPanel":
+        setModalAction("cloudpanel");
+        setSelectedDomain(domainId);
+        setIsModalOpen(true);
+        break;
+      default:
+        console.error("Unknown action:", action);
+    }
+  };
+
   const formatLastChecked = (date) => {
     if (!date) return "Never";
     return new Intl.DateTimeFormat("default", {
@@ -42,8 +70,27 @@ const EnhancedDomainsTable = ({ domains, setDomains , handleDelete , setIsChecki
       timeStyle: "short"
   }).format(new Date(date))}
 
+  const handleModalConfirm = async () => {
+    try {
+      if (modalAction === "cloudflare") {
+        await axios.delete(`/api/v1/domain/cloudflare/${selectedDomain}`);
+        toast.success("Domain deleted from Cloudflare successfully");
+      } else if (modalAction === "cloudpanel") {
+        await axios.delete(`/api/v1/domain/cloudpanel/${selectedDomain}`);
+        toast.success("Domain deleted from CloudPanel successfully");
+      }
+    } catch (error) {
+      console.error(`Error deleting domain from ${modalAction}:`, error);
+      toast.error(`Failed to delete domain from ${modalAction}`);
+    } finally {
+      setIsModalOpen(false);
+      setModalAction(null);
+      setSelectedDomain(null);
+    }
+  };
+
   const checkSingleDomain = async (id) => {
-    const domain = domains.find(domain => domain._id === id);
+    const domain = domains.find((domain) => domain._id === id);
     if (!domain) {
       console.error("Domain not found");
       return;
@@ -51,55 +98,55 @@ const EnhancedDomainsTable = ({ domains, setDomains , handleDelete , setIsChecki
 
     const hasServer = domain?.server?.serverName;
 
-      setDomains(prev =>
-        prev.map(d =>
-          d._id === id
-            ? {
-                ...d,
-                cloudflareStatus: "checking",
-                ...(hasServer && { serverStatus: "checking" }),
-              }
-            : d
-        )
-      );
+    setDomains((prev) =>
+      prev.map((d) =>
+        d._id === id
+          ? {
+              ...d,
+              cloudflareStatus: "checking",
+              ...(hasServer && { serverStatus: "checking" }),
+            }
+          : d
+      )
+    );
 
-      try {
-        if (hasServer) {
-          const [cfResponse, cpResponse] = await Promise.all([
-            axios.put(`/api/v1/domain/cloudflare-validity`, { domainId: id }),
-            axios.put(`/api/v1/domain/server-validity`, { domainId: id }),
-          ]);
+    try {
+      if (hasServer) {
+        const [cfResponse, cpResponse] = await Promise.all([
+          axios.put(`/api/v1/domain/cloudflare-validity`, { domainId: id }),
+          axios.put(`/api/v1/domain/server-validity`, { domainId: id }),
+        ]);
 
-          setDomains(prev =>
-            prev.map(d =>
-              d._id === id
-                ? {
-                    ...d,
-                    cloudflareStatus: cfResponse.data.data.valid ? "valid" : "invalid",
-                    serverStatus: cpResponse.data.data.valid ? "valid" : "invalid",
-                    lastValidityChecked: new Date().toLocaleString(),
-                  }
-                : d
-            )
-          );
-        } else {
-          const cfResponse = await axios.put(`/api/v1/domain/cloudflare-validity`, { domainId: id });
+        setDomains((prev) =>
+          prev.map((d) =>
+            d._id === id
+              ? {
+                  ...d,
+                  cloudflareStatus: cfResponse.data.data.valid ? "valid" : "invalid",
+                  serverStatus: cpResponse.data.data.valid ? "valid" : "invalid",
+                  lastValidityChecked: new Date().toLocaleString(),
+                }
+              : d
+          )
+        );
+      } else {
+        const cfResponse = await axios.put(`/api/v1/domain/cloudflare-validity`, { domainId: id });
 
-          setDomains(prev =>
-            prev.map(d =>
-              d._id === id
-                ? {
-                    ...d,
-                    cloudflareStatus: cfResponse.data.data.valid ? "valid" : "invalid",
-                    lastValidityChecked: new Date().toLocaleString(),
-                  }
-                : d
-            )
-          );
-        }
-      } catch (error) {
-        console.error("Domain check error:", error);
+        setDomains((prev) =>
+          prev.map((d) =>
+            d._id === id
+              ? {
+                  ...d,
+                  cloudflareStatus: cfResponse.data.data.valid ? "valid" : "invalid",
+                  lastValidityChecked: new Date().toLocaleString(),
+                }
+              : d
+          )
+        );
       }
+    } catch (error) {
+      console.error("Domain check error:", error);
+    }
   };
 
   const checkAllDomains = async () => {
@@ -148,6 +195,13 @@ const EnhancedDomainsTable = ({ domains, setDomains , handleDelete , setIsChecki
       setIsCheckingAll(false);
     }
   };
+
+  const dropdownOptions = [
+    { _id: "recheck", label: "Recheck", icon: <RefreshCcw className="w-5 h-5 mr-2" /> },
+    { _id: "deleteDB", label: "Delete from DB", icon: <Trash2 className="w-5 h-5 mr-2" /> },
+    { _id: "deleteCloudflare", label: "Delete from Cloudflare", icon: <Trash2 className="w-5 h-5 mr-2 text-red-500" />, color: "text-red-500" },
+    { _id: "deleteCloudPanel", label: "Delete from CloudPanel", icon: <Trash2 className="w-5 h-5 mr-2 text-red-500" />, color: "text-red-500" },
+  ];
 
   const handleCacheClear = async (id)=>{
     try {
@@ -224,9 +278,7 @@ const EnhancedDomainsTable = ({ domains, setDomains , handleDelete , setIsChecki
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
-                    {domain?.server?.serverName || (
-                      <span className="text-gray-400 italic">No server</span>
-                    )}
+                    {domain?.server?.serverName || <span className="text-gray-400 italic">No server</span>}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -245,38 +297,37 @@ const EnhancedDomainsTable = ({ domains, setDomains , handleDelete , setIsChecki
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => checkSingleDomain(domain._id)}
-                      className="text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={()=>handleDelete(domain._id)}
-                      className="text-gray-600 hover:text-red-600 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={()=>handleCacheClear(domain._id)}
-                      className="text-gray-600 hover:text-red-600 hover:bg-red-50"
-                    >
-                      <BrushCleaning className="h-4 w-4" />
-                    </Button>
+                  <ActionsDropdown options={dropdownOptions} onSelect={(action) => handleAction(action, domain._id)} />
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      <CustomModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={`Confirm Delete from ${modalAction === "cloudflare" ? "Cloudflare" : "CloudPanel"}`}
+      >
+        <p className="text-gray-600">
+          Are you sure you want to delete this domain from {modalAction === "cloudflare" ? "Cloudflare" : "CloudPanel"}?
+        </p>
+        <div className="flex justify-end space-x-4 mt-6">
+          <button
+            onClick={() => setIsModalOpen(false)}
+            className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleModalConfirm}
+            className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+          >
+            Confirm
+          </button>
+        </div>
+      </CustomModal>
     </div>
   );
 };
