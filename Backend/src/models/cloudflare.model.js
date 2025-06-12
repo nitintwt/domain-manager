@@ -20,7 +20,7 @@ const cloudflareAccountSchema = new Schema(
       type: String,
       required: true,
     },
-    apiToken: {
+    apiKey: {
       type: String,
       required: true,
     },
@@ -34,12 +34,10 @@ const cloudflareAccountSchema = new Schema(
       type: String,
       required: true,
     },
-    owner: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "User",
-      },
-    ],
+    owner:{
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
   },
   {
     timestamps: true,
@@ -64,10 +62,10 @@ function encrypt(text) {
 }
 
 cloudflareAccountSchema.pre("save", function (next) {
-  if (!this.isModified("apiToken") || !this.apiToken) return next();
+  if (!this.isModified("apiKey") || !this.apiKey) return next();
 
-  const { data, iv, tag } = encrypt(this.apiToken);
-  this.apiToken = data;
+  const { data, iv, tag } = encrypt(this.apiKey);
+  this.apiKey = data;
   this.tokenIV = iv;
   this.tokenTag = tag;
 

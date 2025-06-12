@@ -43,7 +43,7 @@ const getCloudflareAccount = asyncHandler( async (req , res)=>{
 })
 
 const addCloudflareAccount = asyncHandler (async (req , res)=>{
-  const {userId , accountName, email , accountType , apiToken , zoneId } = req.body
+  const {userId , accountName, email , accountType , apiKey , zoneId } = req.body
   try {
     const user = await User.findById(userId)
     if(!user){
@@ -55,7 +55,7 @@ const addCloudflareAccount = asyncHandler (async (req , res)=>{
       email:email,
       accountName:accountName,
       accountType:accountType,
-      apiToken:apiToken,
+      apiKey:apiKey,
       zoneId:zoneId
     })
 
@@ -77,7 +77,7 @@ const addCloudflareAccount = asyncHandler (async (req , res)=>{
 })
 
 const updateCloudflareAccount = asyncHandler ( async ( req , res)=>{
-  const { accountName, email, apiToken, zoneId, accountType , userId } = req.body;
+  const { accountName, email, apiKey, zoneId, accountType , userId } = req.body;
   const cloudflareId = req.params.id
   try {
     const user = await User.findById(userId)
@@ -89,7 +89,7 @@ const updateCloudflareAccount = asyncHandler ( async ( req , res)=>{
     const updateData = {};
     if (accountName) updateData.accountName = accountName;
     if (email) updateData.email = email;
-    if (apiToken) updateData.apiToken = apiToken;
+    if (apiKey) updateData.apiKey = apiKey;
     if (zoneId) updateData.zoneId = zoneId;
     if (accountType) updateData.accountType = accountType;
 
@@ -127,20 +127,21 @@ const deleteCloudflareAccount = asyncHandler(async (req , res)=>{
 })
 
 const testCloudflareCredentials = asyncHandler(async (req, res) => {
-  const { apiToken } = req.body;
+  const { apiKey , email } = req.body;
 
-  if (!apiToken) {
+  if (!apiKey || !email) {
     return res.status(400).json(
-      new ApiResponse(400, null, "API token is required")
+      new ApiResponse(400, null, "API Key is required")
     );
   }
 
   try {
     const response = await axios.get(
-      "https://api.cloudflare.com/client/v4/user/tokens/verify",
+      "https://api.cloudflare.com/client/v4/user",
       {
         headers: {
-          Authorization: `Bearer ${apiToken}`,
+          "X-Auth-Key": apiKey,
+          "X-Auth-Email": email,
         },
       }
     );

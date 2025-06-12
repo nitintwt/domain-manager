@@ -15,7 +15,8 @@ const TestCredentialsModal = ({ open, onClose, credentials }) => {
       const testCloudflareToken = async () => {
         try {
           const response = await axios.post("/api/v1/cloudflare/cloudflare-accounts/test", {
-            apiToken: credentials.apiToken
+            apiKey: credentials.apiToken,
+            email:credentials.email
           });
           
           if (response.data?.success) {

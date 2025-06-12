@@ -33,8 +33,10 @@ const CreateDomainModal = ({ isOpen, onClose, fetchDomains }) => {
       if (isServer && cloudPanelServer) {
         requestData.serverId = cloudPanelServer;
       }
-      const response = await axios.post(`/api/v1/domain/domain-name`,domainData)
+      const response = await axios.post(`/api/v1/domain/domain-name/create-domain-cloduflare`,domainData)
       console.log("created" , response)
+      onclose()
+      fetchDomains()
       toast.success("Domain created successfully")
     } catch (error) {
       toast.wrong("Something went wrong while creating your server")

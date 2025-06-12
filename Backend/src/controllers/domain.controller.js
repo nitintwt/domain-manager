@@ -109,13 +109,14 @@ const checkCloudflareValidity = asyncHandler ( async ( req , res)=>{
   try {
     const domain = await Domain.findById(domainId)
     const cloudflare = await Cloudflare.findById(domain.cloudflareAccount)
-    const token = decrypt( cloudflare.apiToken , cloudflare.tokenIV , cloudflare.tokenTag)
+    const apiKey = decrypt( cloudflare.apiKey , cloudflare.tokenIV , cloudflare.tokenTag)
     const response = await axios.get(
       `https://api.cloudflare.com/client/v4/zones?name=${domain.domainName}`,
       {
-        headers:{
-          Authorization: `Bearer ${token}`
-        }
+        headers: {
+          "X-Auth-Key": apiKey,
+          "X-Auth-Email": cloudflare.email,
+        },
       }
     )
     if (response.data?.success && response.data.result.length >0) {
@@ -203,11 +204,17 @@ const checkServerValidity = asyncHandler ( async ( req , res)=>{
   }
 })
 
-const createDomainInCloudflare = asyncHandler ( async ( req , res)=>{
-  const {domainName , cloudflareAccount , owner }= req.body
+const createDomainInCloudflare = asyncHandler(async (req, res) => {
+  const { domainName, cloudflareAccount, owner } = req.body;
+
   try {
-    const cloudflare = await Cloudflare.findById(cloudflareAccount)
-    const token = decrypt( cloudflare.apiToken , cloudflare.tokenIV , cloudflare.tokenTag)
+    const cloudflare = await Cloudflare.findById(cloudflareAccount);
+    if (!cloudflare) {
+      return res.status(404).json(
+        new ApiResponse(404, null, "Cloudflare account not found")
+      );
+    }
+    const apiKey = decrypt( cloudflare.apiKey , cloudflare.tokenIV , cloudflare.tokenTag)
 
     const response = await axios.post(
       `https://api.cloudflare.com/client/v4/zones`,
@@ -217,24 +224,29 @@ const createDomainInCloudflare = asyncHandler ( async ( req , res)=>{
       },
       {
         headers: {
-          Authorization: `Bearer ${token}`,
+          "X-Auth-Key": `${apiKey}`,
+          "X-Auth-Email": `${cloudflare.email}`,
           "Content-Type": "application/json",
         },
       }
     );
 
-    console.log("create domain" , response)
+    const newDomain = await Domain.create({
+      owner,
+      domainName,
+      cloudflareAccount,
+    })
 
     return res.status(200).json(
-      new ApiResponse(200 , null , "Domain created successfully")
-    )
+      new ApiResponse(200, newDomain, "Domain created successfully")
+    );
   } catch (error) {
-    console.log("Something went wrong while creating domain in your cloudflare account", error)
+    console.log("Something went wrong while creating domain in your Cloudflare account", error);
     return res.status(500).json(
-      new ApiResponse(500 , null , "Something went wrong while creating domain in your cloudflare account")
-    )
+      new ApiResponse(500, null, "Something went wrong while creating domain in your Cloudflare account")
+    );
   }
-})
+});
 
 const createDomainInServer = asyncHandler(async (req, res) => {
   const { domainName, serverId, owner } = req.body;

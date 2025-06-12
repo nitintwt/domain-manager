@@ -26,65 +26,7 @@ const Domains = () => {
     }
   }
 
-  const checkSingleDomain = async (id) => {
-    setDomains(prev => prev.map(d =>
-      d._id === id
-        ? { ...d, cloudflareStatus: "checking", serverStatus: "checking" }
-        : d
-    ));
-    try {
-      const [cfResponse, cpResponse] = await Promise.all([
-        axios.put(`/api/v1/domain/cloudflare-validity`, { domainId: id }),
-        axios.put(`/api/v1/domain/server-validity`, { domainId: id })
-      ]);
 
-      setDomains(prev => prev.map(d =>
-        d._id === id
-          ? {
-            ...d,
-            serverStatus: cpResponse.data.data.valid ? "valid" : "invalid",
-            cloudflareStatus: cfResponse.data.data.valid ? "valid" : "invalid",
-            lastValidityChecked: new Date().toLocaleString()
-          }
-          : d
-      ));
-    } catch (error) {
-       console.error("Domain check error:", error);
-      }
-  }
-
-  const checkAllDomains = async () => {
-    setIsCheckingAll(true);
-    setDomains(prev => prev.map(d => ({
-      ...d,cloudflareStatus: "checking",serverStatus: "checking"
-    })));
-
-    try {
-      const reponse = await Promise.all( domains.map(async (domain)=>{
-        const [cfResponse, cpResponse] = await Promise.all([
-          axios.put(`/api/v1/domain/cloudflare-validity`, { domainId: domain._id }),
-          axios.put(`/api/v1/domain/server-validity`, { domainId: domain._id })
-        ]);
-
-        setDomains(prev => prev.map(d =>
-          d._id === domain._id
-            ? {
-              ...d,
-              serverStatus: cpResponse.data.data.valid ? "valid" : "invalid",
-              cloudflareStatus: cfResponse.data.data.valid ? "valid" : "invalid",
-              lastValidityChecked: new Date().toLocaleString()
-            }
-            : d
-          )
-        );
-      }))
-      console.log("all domains" , reponse)
-    } catch (error) {
-      console.log("Something went wrong while checking all domains")
-    } finally{
-      setIsCheckingAll(false)
-    }
-  };
 
   const handleDelete = async (id)=>{
     try {
@@ -122,9 +64,9 @@ const Domains = () => {
       />
       <DomainsTable 
         domains={domains}
-        checkSingleDomain={checkSingleDomain}
-        checkAllDomains={checkAllDomains}
+        setDomains={setDomains}
         handleDelete={handleDelete}
+        setIsCheckingAll={setIsCheckingAll}
       />
 
       <CreateDomainModal

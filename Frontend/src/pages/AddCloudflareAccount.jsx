@@ -18,7 +18,7 @@ const AddCloudflareAccount = () => {
         accountName:data.accountName,
         email:data.email,
         accountType:data.accountType,
-        apiToken:data.apiToken,
+        apiKey:data.apiToken,
         zoneId:data.zoneId
       })
       console.log("Adding Cloudflare account:", addData);

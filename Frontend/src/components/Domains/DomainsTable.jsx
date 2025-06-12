@@ -1,7 +1,8 @@
 import {Trash2} from "lucide-react";
 import { Button } from "@heroui/button";
+import axios from "axios";
 
-const EnhancedDomainsTable = ({ domains, checkSingleDomain, checkAllDomains , handleDelete }) => {
+const EnhancedDomainsTable = ({ domains, setDomains , handleDelete , setIsCheckingAll}) => {
 
   const getStatusBadge = (status, type) => {
     const baseClasses = "px-2 py-1 text-xs font-medium rounded-full";
@@ -31,14 +32,121 @@ const EnhancedDomainsTable = ({ domains, checkSingleDomain, checkAllDomains , ha
       default:
         return `${baseClasses} bg-gray-100 text-gray-800`;
     }
+  }
+
+  const formatLastChecked = (date) => {
+    if (!date) return "Never";
+    return new Intl.DateTimeFormat("default", {
+      dateStyle: "medium",
+      timeStyle: "short"
+  }).format(new Date(date))}
+
+  const checkSingleDomain = async (id) => {
+    const domain = domains.find(domain => domain._id === id);
+    if (!domain) {
+      console.error("Domain not found");
+      return;
+    }
+
+    const hasServer = domain?.server?.serverName;
+
+      setDomains(prev =>
+        prev.map(d =>
+          d._id === id
+            ? {
+                ...d,
+                cloudflareStatus: "checking",
+                ...(hasServer && { serverStatus: "checking" }),
+              }
+            : d
+        )
+      );
+
+      try {
+        if (hasServer) {
+          const [cfResponse, cpResponse] = await Promise.all([
+            axios.put(`/api/v1/domain/cloudflare-validity`, { domainId: id }),
+            axios.put(`/api/v1/domain/server-validity`, { domainId: id }),
+          ]);
+
+          setDomains(prev =>
+            prev.map(d =>
+              d._id === id
+                ? {
+                    ...d,
+                    cloudflareStatus: cfResponse.data.data.valid ? "valid" : "invalid",
+                    serverStatus: cpResponse.data.data.valid ? "valid" : "invalid",
+                    lastValidityChecked: new Date().toLocaleString(),
+                  }
+                : d
+            )
+          );
+        } else {
+          const cfResponse = await axios.put(`/api/v1/domain/cloudflare-validity`, { domainId: id });
+
+          setDomains(prev =>
+            prev.map(d =>
+              d._id === id
+                ? {
+                    ...d,
+                    cloudflareStatus: cfResponse.data.data.valid ? "valid" : "invalid",
+                    lastValidityChecked: new Date().toLocaleString(),
+                  }
+                : d
+            )
+          );
+        }
+      } catch (error) {
+        console.error("Domain check error:", error);
+      }
   };
 
-    const formatLastChecked = (date) => {
-      if (!date) return "Never";
-      return new Intl.DateTimeFormat("default", {
-        dateStyle: "medium",
-        timeStyle: "short"
-      }).format(new Date(date))}
+  const checkAllDomains = async () => {
+    setIsCheckingAll(true);
+
+    setDomains(prev =>
+      prev.map(d => ({
+        ...d,
+        cloudflareStatus: "checking",
+        ...(d?.server?.serverName && { serverStatus: "checking" }),
+      }))
+    );
+
+    try {
+      const responses = await Promise.all(
+        domains.map(async (domain) => {
+          const cloudflareCheck = axios.put(`/api/v1/domain/cloudflare-validity`, { domainId: domain._id });
+
+          const serverCheck = domain?.server?.serverName
+            ? axios.put(`/api/v1/domain/server-validity`, { domainId: domain._id })
+            : null;
+
+          const [cfResponse, cpResponse] = await Promise.all([cloudflareCheck, serverCheck]);
+
+          setDomains(prev =>
+            prev.map(d =>
+              d._id === domain._id
+                ? {
+                    ...d,
+                    cloudflareStatus: cfResponse.data.data.valid ? "valid" : "invalid",
+                    ...(cpResponse && {
+                      serverStatus: cpResponse.data.data.valid ? "valid" : "invalid",
+                    }),
+                    lastValidityChecked: new Date().toLocaleString(),
+                  }
+                : d
+            )
+          );
+        })
+      );
+
+      console.log("All domains checked:", responses);
+    } catch (error) {
+      console.error("Something went wrong while checking all domains:", error);
+    } finally {
+      setIsCheckingAll(false);
+    }
+  };
 
   if (domains.length === 0) {
     return (
@@ -100,7 +208,7 @@ const EnhancedDomainsTable = ({ domains, checkSingleDomain, checkAllDomains , ha
                   <div className="text-sm font-medium text-gray-900">{domain.domainName}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{domain.cloudflareAccount.accountName}</div>
+                  <div className="text-sm text-gray-900">{domain.cloudflareAccount?.accountName}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
