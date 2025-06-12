@@ -8,7 +8,6 @@ const domainSchema = new Schema(
     cloudflareAccount:{
       type:Schema.Types.ObjectId,
       ref:"Cloudflare",
-      required:true
     },
     owner: {
       type: Schema.Types.ObjectId,

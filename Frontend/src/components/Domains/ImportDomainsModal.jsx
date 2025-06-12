@@ -7,13 +7,11 @@ import { Toaster, toast } from 'sonner';
 
 const ImportDomainsModal = ({ isOpen, onClose, fetchDomains }) => {
   const [domains , setDomains]= useState('')
-  const [showPreview, setShowPreview] = useState(false);
   const [cloudflareAccount , setCloudflareAccount]= useState()
   const [cloudPanelServer , setCloudPanelServer]=useState()
   const [cloudflareAccounts , setCloudflareAccounts]= useState([])
   const [cloudPanelServers , setCloudPanelServers]= useState([])
   const [cookies , setCookies]=useCookies()
-
   const [isServer , setIsServer]=useState(false)
 
 
@@ -30,21 +28,27 @@ const ImportDomainsModal = ({ isOpen, onClose, fetchDomains }) => {
     const uniqueDomains = [...new Set(lines)];
     console.log("domains", uniqueDomains)
     try {
-      const response = await axios.post(`/api/v1/domain/domain-name`, {
-        userId:cookies.userData._id,
-        domains:uniqueDomains,
-        cloudflareAccountId:cloudflareAccount,
-        serverId:cloudPanelServer
-      })
+      const requestData = {
+        userId: cookies.userData._id,
+        domains: uniqueDomains,
+        cloudflareAccountId: cloudflareAccount,
+      };
+
+      if (isServer && cloudPanelServer) {
+        requestData.serverId = cloudPanelServer;
+      }
+
+      const response = await axios.post(`/api/v1/domain/domain-name`, requestData);
       console.log('imported' , response)
       onClose()
       fetchDomains()
       setDomains('')
       setCloudflareAccount('')
       setCloudPanelServer('')
-      toast.success("Domain added successfully")
+      toast.success("Domain imported successfully")
     } catch (error) {
-      console.log('Something went wrong while creating domains' , error)
+      toast.error("Something went wrong while importing your domains")
+      console.log('Something went wrong while importing your domains' , error)
     }
   }
 
@@ -73,14 +77,10 @@ const ImportDomainsModal = ({ isOpen, onClose, fetchDomains }) => {
     fetchCloudflareAccounts()
   },[])
 
-
-
-
   const handleClose = () => {
     setCloudPanelServer('')
     setCloudflareAccount('')
     setDomains('')
-    setShowPreview(false);
     setIsServer(false)
     onClose();
   };

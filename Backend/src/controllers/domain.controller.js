@@ -7,6 +7,7 @@ import { decrypt } from "../utils/decrypt.js";
 import axios from 'axios'
 import {Server} from "../models/server.model.js"
 import { Client } from "ssh2";
+import crypto from 'crypto'
 
 const getDomains = asyncHandler(async (req, res) => {
   const { userId } = req.query;
@@ -61,14 +62,21 @@ const createDomain = asyncHandler(async (req , res)=>{
       )
     }
 
-    const response = await Promise.all(domains.map( async (domain)=>{
-      await Domain.create({
-      owner:userId,
-      cloudflareAccount:cloudflareAccountId,
-      server:serverId,
-      domainName:domain
+    const response = await Promise.all(
+      domains.map(async (domain) => {
+        const domainData = {
+          owner: userId,
+          cloudflareAccount: cloudflareAccountId,
+          domainName: domain,
+        };
+        
+        if (serverId) {
+          domainData.server = serverId;
+        }
+
+        return await Domain.create(domainData);
       })
-    }))
+    );
 
     return res.status(200).json(
       new ApiResponse(200 , response , "Domain created successfully")
@@ -141,7 +149,7 @@ const checkServerValidity = asyncHandler ( async ( req , res)=>{
     const server = await Server.findById(domain.server)
     const password = decrypt(server.sshPassword , server.tokenIV , server.tokenTag)
     
-  const conn = new Client()
+    const conn = new Client()
 
   conn
     .on("ready", () => {
@@ -195,4 +203,123 @@ const checkServerValidity = asyncHandler ( async ( req , res)=>{
   }
 })
 
-export {getDomains , getDomain , createDomain, deleteDomain , checkCloudflareValidity , checkServerValidity}
+const createDomainInCloudflare = asyncHandler ( async ( req , res)=>{
+  const {domainName , cloudflareAccount , owner }= req.body
+  try {
+    const cloudflare = await Cloudflare.findById(cloudflareAccount)
+    const token = decrypt( cloudflare.apiToken , cloudflare.tokenIV , cloudflare.tokenTag)
+
+    const response = await axios.post(
+      `https://api.cloudflare.com/client/v4/zones`,
+      {
+        name: domainName,
+        jump_start: true,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    console.log("create domain" , response)
+
+    return res.status(200).json(
+      new ApiResponse(200 , null , "Domain created successfully")
+    )
+  } catch (error) {
+    console.log("Something went wrong while creating domain in your cloudflare account", error)
+    return res.status(500).json(
+      new ApiResponse(500 , null , "Something went wrong while creating domain in your cloudflare account")
+    )
+  }
+})
+
+const createDomainInServer = asyncHandler(async (req, res) => {
+  const { domainName, serverId, owner } = req.body;
+
+  try {
+    const server = await Server.findById(serverId);
+    const password = decrypt(server.sshPassword, server.tokenIV, server.tokenTag);
+    const conn = new Client();
+
+    conn
+      .on("ready", () => {
+        console.log("SSH connection established");
+
+        let shellStream = "";
+        conn.shell((err, stream) => {
+          if (err) {
+            conn.end();
+            return res.status(500).json(new ApiResponse(500, null, "SSH shell error"));
+          }
+
+          let outputBuffer = "";
+          const randomUsername = `user_${crypto.randomBytes(4).toString("hex")}`;
+          let step = 0;
+
+          stream
+            .on("close", () => {
+              console.log("Shell session closed");
+              conn.end();
+            })
+            .on("data", async (data) => {
+              const output = data.toString();
+              outputBuffer += output;
+              console.log("Shell output:", output);
+
+              if (step === 0 && output.includes("$")) {
+                // Step 0: Check if domain exists
+                stream.write(`sudo find /home/*/htdocs/ -type d -name "${domainName}" -wholename "*/htdocs/${domainName}"\n`);
+                step++;
+              } else if (step === 1 && output.includes("[sudo] password")) {
+                stream.write(`${password}\n`);
+              } else if (step === 1 && output.includes("/htdocs/")) {
+                // Domain exists
+                stream.end();
+                return res.status(200).json(new ApiResponse(200, null, "Domain already exists"));
+              } else if (step === 1 && output.includes("$")) {
+                // Domain not found, go to next step
+                stream.write(`sudo mkdir -p /home/${randomUsername}/htdocs/${domainName} && echo "<?php phpinfo(); ?>" | sudo tee /home/${randomUsername}/htdocs/${domainName}/index.php\n`);
+                step++;
+              } else if (step === 2 && output.includes("[sudo] password")) {
+                stream.write(`${password}\n`);
+              } else if (step === 2 && output.includes("$")) {
+                // Domain created, save in DB
+                stream.end();
+                const domainData = {
+                  domainName,
+                  server: serverId,
+                  owner,
+                };
+
+                const newDomain = await Domain.create(domainData);
+                return res.status(200).json(new ApiResponse(200, newDomain, "Domain created successfully"));
+              }
+            })
+            .stderr.on("data", (data) => {
+              console.error("Shell stderr:", data.toString());
+            });
+        });
+      })
+      .on("error", (err) => {
+        console.error("SSH connection error:", err.message);
+        return res.status(500).json(new ApiResponse(500, null, "SSH connection failed"));
+      })
+      .connect({
+        host: server.hostName,
+        port: server.sshPort,
+        username: server.sshUsername,
+        password: password,
+      });
+  } catch (error) {
+    console.error("Error creating domain in server:", error);
+    return res.status(500).json(
+      new ApiResponse(500, null, "Something went wrong while creating domain in your server")
+    );
+  }
+});
+
+
+export {getDomains , getDomain , createDomain, deleteDomain , checkCloudflareValidity , checkServerValidity , createDomainInCloudflare , createDomainInServer}

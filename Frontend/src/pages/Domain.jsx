@@ -130,6 +130,7 @@ const Domains = () => {
       <CreateDomainModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
+        fetchDomains={fetchDomains}
         
       />
 
