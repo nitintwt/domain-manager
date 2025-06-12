@@ -104,7 +104,6 @@ const ServerForm = ({ initialData, onSubmit, isLoading }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (validate()) {
-      // Clear unused auth method before submitting
       const submissionData = {
         ...formData,
         sshKey: authMethod === "key" ? formData.sshKey : "",

@@ -11,25 +11,27 @@ const Servers = () => {
   const [servers , setServers] = useState();
   const [cookies] = useCookies();
 
+  const fetchServers = async ()=>{
+    try {
+      const response = await axios.get(`/api/v1/server/server-credentials?userId=${cookies.userData?._id}`)
+      setServers(response.data.data)
+      console.log("accounts" , response)
+    } catch (error) {
+      console.log("Something went wrong while fetching Servers" , error)
+    }
+  }
+
   const handleDelete = async (accountId) => {
     try {
       const ress = await axios.delete(`/api/v1/server/server-credentials/${accountId}`)
       console.log("deleted" , ress)
+      fetchServers()
     } catch (error) {
       console.log("Something went wrong while deleting your", error)
     }
   };
 
   useEffect(()=>{
-    const fetchServers = async ()=>{
-      try {
-        const response = await axios.get(`/api/v1/server/server-credentials?userId=${cookies.userData?._id}`)
-        setServers(response.data.data)
-        console.log("accounts" , response)
-      } catch (error) {
-        console.log("Something went wrong while fetching Servers" , error)
-      }
-    }
     fetchServers()
   }, [])
 

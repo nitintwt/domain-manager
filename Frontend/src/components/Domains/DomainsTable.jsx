@@ -1,6 +1,7 @@
-import {Trash2} from "lucide-react";
+import {Trash2, BrushCleaning} from "lucide-react";
 import { Button } from "@heroui/button";
 import axios from "axios";
+import { toast } from "sonner";
 
 const EnhancedDomainsTable = ({ domains, setDomains , handleDelete , setIsCheckingAll}) => {
 
@@ -148,6 +149,17 @@ const EnhancedDomainsTable = ({ domains, setDomains , handleDelete , setIsChecki
     }
   };
 
+  const handleCacheClear = async (id)=>{
+    try {
+      const response = await axios.post(`/api/v1/domain/domain-name/clear-cache-cloudflare`, {domainId:id})
+      console.log("cache cleared", response)
+      toast.success("Cache cleared successfully")
+    } catch (error) {
+      console.log("Something went wrong while clearing domain cache" , error)
+      toast.error("Something went wrong")
+    }
+  }
+
   if (domains.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
@@ -250,6 +262,14 @@ const EnhancedDomainsTable = ({ domains, setDomains , handleDelete , setIsChecki
                       className="text-gray-600 hover:text-red-600 hover:bg-red-50"
                     >
                       <Trash2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={()=>handleCacheClear(domain._id)}
+                      className="text-gray-600 hover:text-red-600 hover:bg-red-50"
+                    >
+                      <BrushCleaning className="h-4 w-4" />
                     </Button>
                 </td>
               </tr>

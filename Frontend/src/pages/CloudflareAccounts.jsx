@@ -18,27 +18,28 @@ const CloudflareAccounts = () => {
     setSelectedAccount(accountId);
     setTestModalOpen(true);
   };
-  console.log(cookies.userData?._id)
+
+  const fetchAccounts = async ()=>{
+    try {
+      const response = await axios.get(`/api/v1/cloudflare/cloudflare-accounts?userId=${cookies.userData?._id}`)
+      setAccounts(response.data.data)
+      console.log("accounts" , response)
+    } catch (error) {
+      console.log("Something went wrong while fetching accounts")
+    }
+  }
 
   const handleDelete = async (accountId) => {
     try {
       const ress = await axios.delete(`/api/v1/cloudflare/cloudflare-accounts/${accountId}`)
       console.log("deleted" , ress)
+      fetchAccounts()
     } catch (error) {
       console.log("Something went wrong while deleting your", error)
     }
   };
 
   useEffect(()=>{
-    const fetchAccounts = async ()=>{
-      try {
-        const response = await axios.get(`/api/v1/cloudflare/cloudflare-accounts?userId=${cookies.userData?._id}`)
-        setAccounts(response.data.data)
-        console.log("accounts" , response)
-      } catch (error) {
-        console.log("Something went wrong while fetching accounts")
-      }
-    }
     fetchAccounts()
   }, [])
 

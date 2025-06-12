@@ -9,6 +9,9 @@ const domainSchema = new Schema(
       type:Schema.Types.ObjectId,
       ref:"Cloudflare",
     },
+    cloudflareZoneId:{
+      type:String,
+    },
     owner: {
       type: Schema.Types.ObjectId,
       ref: "User",

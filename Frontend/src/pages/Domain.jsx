@@ -26,8 +26,6 @@ const Domains = () => {
     }
   }
 
-
-
   const handleDelete = async (id)=>{
     try {
       await axios.delete(`/api/v1/domain/domain-name/${id}`)
