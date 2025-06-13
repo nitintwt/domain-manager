@@ -40,11 +40,25 @@ const EnhancedDomainsTable = ({ domains, setDomains, handleDelete, setIsChecking
     }
   }
 
+  const handleCacheClear = async (id)=>{
+    try {
+      const response = await axios.post(`/api/v1/domain/domain-name/clear-cache-cloudflare`, {domainId:id})
+      console.log("cache cleared", response)
+      toast.success("Cache cleared successfully")
+    } catch (error) {
+      console.log("Something went wrong while clearing domain cache" , error)
+      toast.error("Something went wrong")
+    }
+  }
+
   const handleAction = (action, domainId) => {
     switch (action) {
       case "recheck":
         checkSingleDomain(domainId);
         break;
+      case "cacheClear":
+        handleCacheClear(domainId)
+        break
       case "deleteDB":
         handleDelete(domainId);
         break;
@@ -199,20 +213,10 @@ const EnhancedDomainsTable = ({ domains, setDomains, handleDelete, setIsChecking
   const dropdownOptions = [
     { _id: "recheck", label: "Recheck", icon: <RefreshCcw className="w-5 h-5 mr-2" /> },
     { _id: "deleteDB", label: "Delete from DB", icon: <Trash2 className="w-5 h-5 mr-2" /> },
+    { _id: "cacheClear", label: "Clear Domain Cache", icon: <Trash2 className="w-5 h-5 mr-2" /> },
     { _id: "deleteCloudflare", label: "Delete from Cloudflare", icon: <Trash2 className="w-5 h-5 mr-2 text-red-500" />, color: "text-red-500" },
     { _id: "deleteCloudPanel", label: "Delete from CloudPanel", icon: <Trash2 className="w-5 h-5 mr-2 text-red-500" />, color: "text-red-500" },
   ];
-
-  const handleCacheClear = async (id)=>{
-    try {
-      const response = await axios.post(`/api/v1/domain/domain-name/clear-cache-cloudflare`, {domainId:id})
-      console.log("cache cleared", response)
-      toast.success("Cache cleared successfully")
-    } catch (error) {
-      console.log("Something went wrong while clearing domain cache" , error)
-      toast.error("Something went wrong")
-    }
-  }
 
   if (domains.length === 0) {
     return (

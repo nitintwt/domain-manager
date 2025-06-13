@@ -8,6 +8,7 @@ import axios from 'axios'
 import {Server} from "../models/server.model.js"
 import { Client } from "ssh2";
 import crypto from 'crypto'
+import getZoneId from "../utils/getZoneId.js";
 
 const getDomains = asyncHandler(async (req, res) => {
   const { userId } = req.query;
@@ -341,8 +342,10 @@ const clearCacheOfDomain = asyncHandler ( async ( req , res)=>{
     const cloudflare = await Cloudflare.findById(domain.cloudflareAccount)
     const apiKey = decrypt( cloudflare.apiKey , cloudflare.tokenIV , cloudflare.tokenTag)
 
+    const zoneId = await getZoneId(domain.domainName, apiKey , cloudflare.email)
+      console.log("Zone ID:", zoneId);
     const response = await axios.post(
-      `https://api.cloudflare.com/client/v4/zones/${domain.cloudflareZoneId}/purge_cache`,
+      `https://api.cloudflare.com/client/v4/zones/${zoneId}/purge_cache`,
       {
         purge_everything: true,
       },
