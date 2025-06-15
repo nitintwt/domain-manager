@@ -198,7 +198,7 @@ const checkServerValidity = asyncHandler ( async ( req , res)=>{
       password:password
     });
   } catch (error) {
-    console.log("Something went wrong while checking server validity for domain name")
+    console.log("Something went wrong while checking server validity for domain name", error)
     return res.status(500).json(
       new ApiResponse(500 , null , "Something went wrong while checking server validity for domain name")
     )
@@ -251,89 +251,178 @@ const createDomainInCloudflare = asyncHandler(async (req, res) => {
 })
 
 const createDomainInServer = asyncHandler(async (req, res) => {
-  const { domainName, serverId, owner } = req.body;
+  const { domainName, serverId , owner } = req.body;
 
-  try {
-    const server = await Server.findById(serverId);
-    const password = decrypt(server.sshPassword, server.tokenIV, server.tokenTag);
-    const conn = new Client();
-
-    conn
-      .on("ready", () => {
-        console.log("SSH connection established");
-
-        let shellStream = "";
-        conn.shell((err, stream) => {
-          if (err) {
-            conn.end();
-            return res.status(500).json(new ApiResponse(500, null, "SSH shell error"));
-          }
-
-          let outputBuffer = "";
-          const randomUsername = `user_${crypto.randomBytes(4).toString("hex")}`;
-          let step = 0;
-
-          stream
-            .on("close", () => {
-              console.log("Shell session closed");
-              conn.end();
-            })
-            .on("data", async (data) => {
-              const output = data.toString();
-              outputBuffer += output;
-              console.log("Shell output:", output);
-
-              if (step === 0 && output.includes("$")) {
-                // Step 0: Check if domain exists
-                stream.write(`sudo find /home/*/htdocs/ -type d -name "${domainName}" -wholename "*/htdocs/${domainName}"\n`);
-                step++;
-              } else if (step === 1 && output.includes("[sudo] password")) {
-                stream.write(`${password}\n`);
-              } else if (step === 1 && output.includes("/htdocs/")) {
-                // Domain exists
-                stream.end();
-                return res.status(200).json(new ApiResponse(200, null, "Domain already exists"));
-              } else if (step === 1 && output.includes("$")) {
-                // Domain not found, go to next step
-                stream.write(`sudo mkdir -p /home/${randomUsername}/htdocs/${domainName} && echo "<?php phpinfo(); ?>" | sudo tee /home/${randomUsername}/htdocs/${domainName}/index.php\n`);
-                step++;
-              } else if (step === 2 && output.includes("[sudo] password")) {
-                stream.write(`${password}\n`);
-              } else if (step === 2 && output.includes("$")) {
-                // Domain created, save in DB
-                stream.end();
-                const domainData = {
-                  domainName,
-                  server: serverId,
-                  owner,
-                };
-
-                const newDomain = await Domain.create(domainData);
-                return res.status(200).json(new ApiResponse(200, newDomain, "Domain created successfully"));
-              }
-            })
-            .stderr.on("data", (data) => {
-              console.error("Shell stderr:", data.toString());
-            });
-        });
-      })
-      .on("error", (err) => {
-        console.error("SSH connection error:", err.message);
-        return res.status(500).json(new ApiResponse(500, null, "SSH connection failed"));
-      })
-      .connect({
-        host: server.hostName,
-        port: server.sshPort,
-        username: server.sshUsername,
-        password: password,
-      });
-  } catch (error) {
-    console.error("Error creating domain in server:", error);
-    return res.status(500).json(
-      new ApiResponse(500, null, "Something went wrong while creating domain in your server")
-    );
+  if (!domainName || !serverId) {
+    return res.status(400).json(new ApiResponse(400, null, "domainName and serverId are required"));
   }
+
+  const server = await Server.findById(serverId);
+  if (!server) {
+    return res.status(404).json(new ApiResponse(404, null, "Server not found"));
+  }
+
+  const password = decrypt(server.sshPassword, server.tokenIV, server.tokenTag);
+  const randomUsername = `user_${crypto.randomBytes(4).toString("hex")}`;
+
+  const ssh = new Client();
+  let responseSent = false;
+
+  ssh
+    .on("ready", () => {
+      const checkCommand = `echo "${password}" | sudo -S sh -c 'find /home -type d -name "${domainName}"'`;
+      ssh.exec(checkCommand, (err, stream) => {
+        if (err) {
+          ssh.end();
+          return res.status(500).json(new ApiResponse(500, null, "Failed to check if domain exists"));
+        }
+
+        let output = "";
+        stream
+          .on("close", () => {
+            if (output.includes(domainName)) {
+              ssh.end();
+              return res.status(200).json(new ApiResponse(200, null, `Domain ${domainName} already exists`));
+            }
+
+            const createCommand = `echo "${password}" | sudo -S sh -c '
+              useradd -m -d /home/${randomUsername} -s /bin/bash ${randomUsername} && \
+              mkdir -p /home/${randomUsername}/htdocs/${domainName} && \
+              chown -R ${randomUsername}:${randomUsername} /home/${randomUsername} && \
+              cp -r /etc/skel /home/${randomUsername}/htdocs/${domainName} && \
+              echo "<?php phpinfo(); ?>" > /home/${randomUsername}/htdocs/${domainName}/index.php
+            '`;
+
+            ssh.exec(createCommand, (createErr, createStream) => {
+              if (createErr) {
+                ssh.end();
+                return res.status(500).json(new ApiResponse(500, null, "Failed to execute create command"));
+              }
+
+              let createOutput = "";
+              createStream
+                .on("close", async () => {
+                  ssh.end();
+                  if (!responseSent) {
+                    responseSent = true;
+                    let createdDomain = await Domain.findOne({domainName:domainName})
+                    if (!createdDomain){
+                      createdDomain = await Domain.create({
+                      domainName:domainName,
+                      server:serverId,
+                      owner:owner
+                    })
+                    } else {
+                      createdDomain.server = serverId
+                      await createdDomain.save()
+                    }
+                    return res.status(201).json(new ApiResponse(201, createdDomain , `Domain ${domainName} created successfully with PHP project`));
+                  }
+                })
+                .on("data", (data) => {
+                  createOutput += data.toString();
+                })
+                .stderr.on("data", (data) => {
+                  createOutput += data.toString();
+                });
+            });
+          })
+          .on("data", (data) => {
+            output += data.toString();
+          })
+          .stderr.on("data", (data) => {
+            output += data.toString();
+          });
+      });
+    })
+    .on("error", (err) => {
+      if (!responseSent) {
+        responseSent = true;
+        return res.status(500).json(new ApiResponse(500, null, `SSH connection error: ${err.message}`));
+      }
+    })
+    .connect({
+      host: server.hostName,
+      port: server.sshPort,
+      username: server.sshUsername,
+      password: password,
+    });
 })
+
+const deleteDomainInServer = asyncHandler(async (req, res) => {
+  const id = req.params.id
+
+  const domain = await Domain.findById(id)
+  const server = await Server.findById(domain.server)
+  const password = decrypt(server.sshPassword, server.tokenIV, server.tokenTag);
+  const ssh = new Client();
+  let responseSent = false;
+
+  const execCommand = (ssh, command) => {
+    return new Promise((resolve, reject) => {
+      ssh.exec(command, (err, stream) => {
+        if (err) return reject(err);
+        let output = "";
+        stream.on("data", (data) => (output += data.toString()));
+        stream.stderr.on("data", (data) => (output += data.toString()));
+        stream.on("close", () => resolve(output.trim()));
+      });
+    });
+  };
+
+  ssh
+    .on("ready", async () => {
+      try {
+        // 1. Find the domain path
+        const findCommand = `echo "${password}" | sudo -S find /home -type d -name "${domain.domainName}" -wholename "*/htdocs/${domain.domainName}"`;
+        const foundPath = await execCommand(ssh, findCommand);
+
+        if (!foundPath || foundPath.includes("No such file or directory")) {
+          ssh.end();
+          if (!responseSent) {
+            responseSent = true;
+            return res
+              .status(404)
+              .json(new ApiResponse(404, null, `Domain ${domain.domainName} not found on server`));
+          }
+        }
+
+        // 2. Delete the domain folder
+        const deleteCommand = `echo "${password}" | sudo -S rm -rf "${foundPath}"`;
+        await execCommand(ssh, deleteCommand);
+        ssh.end();
+
+        if (!responseSent) {
+          responseSent = true;
+          return res
+            .status(200)
+            .json(new ApiResponse(200, null, `Domain ${domain.domainName} deleted successfully`));
+        }
+      } catch (err) {
+        ssh.end();
+        if (!responseSent) {
+          responseSent = true;
+          return res
+            .status(500)
+            .json(new ApiResponse(500, null, `Error while deleting domain: ${err.message}`));
+        }
+      }
+    })
+    .on("error", (err) => {
+      if (!responseSent) {
+        responseSent = true;
+        return res
+          .status(500)
+          .json(new ApiResponse(500, null, `SSH connection failed: ${err.message}`));
+      }
+    })
+    .connect({
+      host: server.hostName,
+      port: server.sshPort,
+      username: server.sshUsername,
+      password: password,
+    });
+});
 
 const clearCacheOfDomain = asyncHandler ( async ( req , res)=>{
   const {domainId}= req.body
@@ -377,15 +466,16 @@ const clearCacheOfDomain = asyncHandler ( async ( req , res)=>{
 })
 
 const deleteDomainInCloudflare = asyncHandler ( async (req , res)=>{
-  const id=req.params
-
+  const id=req.params.id
+ 
   try {
     const domain = await Domain.findById(id)
     const cloudflare = await Cloudflare.findById(domain.cloudflareAccount)
     const apiKey = decrypt( cloudflare.apiKey , cloudflare.tokenIV , cloudflare.tokenTag)
+    const zoneId = await getZoneId(domain.domainName, apiKey , cloudflare.email)
     
     const response = await axios.delete(
-      `https://api.cloudflare.com/client/v4/zones/${domain.cloudflareZoneId}`,
+      `https://api.cloudflare.com/client/v4/zones/${zoneId}`,
       {
         headers: {
           "X-Auth-Key": apiKey,
@@ -394,7 +484,7 @@ const deleteDomainInCloudflare = asyncHandler ( async (req , res)=>{
         },
       }
     );
-
+    console.log("deletd", response)
     if (response.data?.success) {
       return res.status(200).json(
         new ApiResponse(200, null, "Domain deleted successfully in Cloudflare")
@@ -413,4 +503,4 @@ const deleteDomainInCloudflare = asyncHandler ( async (req , res)=>{
   }
 })
 
-export {getDomains , getDomain , createDomain, deleteDomain , checkCloudflareValidity , checkServerValidity , createDomainInCloudflare , createDomainInServer , clearCacheOfDomain , deleteDomainInCloudflare}
+export {getDomains , getDomain , createDomain, deleteDomain , checkCloudflareValidity , checkServerValidity , createDomainInCloudflare , createDomainInServer , clearCacheOfDomain , deleteDomainInCloudflare , deleteDomainInServer}

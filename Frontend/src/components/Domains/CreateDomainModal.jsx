@@ -31,15 +31,26 @@ const CreateDomainModal = ({ isOpen, onClose, fetchDomains }) => {
         owner: cookies.userData._id
       }
       if (isServer && cloudPanelServer) {
-        requestData.serverId = cloudPanelServer;
+        onClose()
+        toast.success("Domain creating....")
+        const response = await axios.post(`/api/v1/domain/domain-name/create-domain-cloduflare`,domainData)
+        const resServer = await axios.post(`/api/v1/domain/domain-name/create-domain-server`, {
+          domainName:domain,
+          serverId: cloudPanelServer,
+          owner: cookies.userData._id
+        })
+        console.log("created cf" , response)
+        console.log("created cp" , resServer)
+      } else {
+        onClose()
+        toast.success("Domain creating....")
+        const response = await axios.post(`/api/v1/domain/domain-name/create-domain-cloduflare`,domainData)
+        console.log("created cf" , response)
       }
-      const response = await axios.post(`/api/v1/domain/domain-name/create-domain-cloduflare`,domainData)
-      console.log("created" , response)
-      onclose()
       fetchDomains()
-      toast.success("Domain created successfully")
+      toast.success("Domain created successfully in Cloudflare and Cloudpanel")
     } catch (error) {
-      toast.wrong("Something went wrong while creating your server")
+      toast.error("Something went wrong while creating your server")
       console.log("Something went wrong while creating your server", error)
     }
 

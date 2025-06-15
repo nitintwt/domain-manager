@@ -90,8 +90,10 @@ const EnhancedDomainsTable = ({ domains, setDomains, handleDelete, setIsChecking
         await axios.delete(`/api/v1/domain/cloudflare/${selectedDomain}`);
         toast.success("Domain deleted from Cloudflare successfully");
       } else if (modalAction === "cloudpanel") {
-        await axios.delete(`/api/v1/domain/cloudpanel/${selectedDomain}`);
-        toast.success("Domain deleted from CloudPanel successfully");
+        toast.warning("Deleting domain.....")
+        const res = await axios.delete(`/api/v1/domain/domain-name/delete-domain-server/${selectedDomain}`);
+        console.log("del server ", res)
+        toast.success("Domain deleted from CloudPanel Server successfully");
       }
     } catch (error) {
       console.error(`Error deleting domain from ${modalAction}:`, error);
