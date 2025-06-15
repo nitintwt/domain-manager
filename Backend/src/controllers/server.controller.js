@@ -109,7 +109,7 @@ const deleteServer = asyncHandler( async ( req , res)=>{
   try {
     const server = await Server.findByIdAndDelete(id)
     return res.status(200).json(
-      new ApiResponse(200 , server , "Server Deleted Successfully")
+      new ApiResponse(200 , null , "Server Deleted Successfully")
     )
   } catch (error) {
     console.error("Something went wrong while deleting server" , error)

@@ -2,7 +2,6 @@ import dotenv from 'dotenv'
 import connectDB from './db/index.js'
 import {app} from './app.js'
 
-// to give env access to every file 
 dotenv.config({
   path:'./.env'
 })

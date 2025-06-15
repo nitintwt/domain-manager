@@ -32,12 +32,12 @@ const getCloudflareAccount = asyncHandler( async (req , res)=>{
   try {
     const account = await Cloudflare.findById(id)
     return res.status(200).json(
-      new ApiResponse(200 , account , "All cloudflare accounts fetched successfully.")
+      new ApiResponse(200 , account , "Cloudflare accounts fetched successfully.")
     )
   } catch (error) {
-    console.error("Something went wrong while fetching cloudflare accounts" , error)
+    console.error("Something went wrong while fetching cloudflare account" , error)
     return res.status(500).json(
-      {message: "Something went wrong while fetching cloudflare accounts"}
+      {message: "Something went wrong while fetching cloudflare account"}
     ) 
   }
 })
@@ -163,29 +163,4 @@ const testCloudflareCredentials = asyncHandler(async (req, res) => {
   }
 })
 
-const createDomainInCloudflare = asyncHandler( async (req , res)=>{
-  const { cloudflareAccountId }= req.body
-  try {
-    const cloudflare = await Cloudflare.findById(cloudflareAccountId)
-    const token = decrypt( cloudflare.apiToken , cloudflare.tokenIV , cloudflare.tokenTag)
-    const response = await axios.get(
-      "https://api.cloudflare.com/client/v4/accounts",
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    console.log("reponse" , response.data)
-    return res.status(200).json(
-      new ApiResponse(200, { valid: true }, "Cloudflare account created successfully")
-    );
-  } catch (error) {
-    console.error("Failed to create domain in Cloudflare account", error);
-    return res.status(401).json(
-      new ApiResponse(401, { valid: false }, "Failed to create domain in Cloudflare account")
-    );
-  }
-})
-
-export {getCloudflareAccounts , addCloudflareAccount , updateCloudflareAccount , deleteCloudflareAccount , testCloudflareCredentials , getCloudflareAccount, createDomainInCloudflare}
+export {getCloudflareAccounts , addCloudflareAccount , updateCloudflareAccount , deleteCloudflareAccount , testCloudflareCredentials , getCloudflareAccount}

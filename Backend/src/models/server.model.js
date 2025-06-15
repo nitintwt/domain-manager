@@ -37,18 +37,17 @@ const serverSchema = new Schema(
     tokenTag: {
       type: String,
     },
-    owner: [{
+    owner: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true
-    }]
+    }
   },
   {
     timestamps: true
   }
 );
 
-// Validate that either sshKey or sshPassword is provided, but not both
 serverSchema.pre('validate', function(next) {
   if (!this.sshKey && !this.sshPassword) {
     next(new Error('Either SSH key or password is required'));
@@ -80,9 +79,7 @@ function encrypt(text) {
   };
 }
 
-// Modified pre-save middleware to encrypt either sshKey or sshPassword
 serverSchema.pre("save", function(next) {
-  // Check which field is being used and if it was modified
   const fieldToEncrypt = this.sshKey ? "sshKey" : "sshPassword";
   
   if (!this.isModified(fieldToEncrypt)) {
@@ -93,7 +90,6 @@ serverSchema.pre("save", function(next) {
     const valueToEncrypt = this[fieldToEncrypt];
     const { data, iv, tag } = encrypt(valueToEncrypt);
     
-    // Store encrypted data
     this[fieldToEncrypt] = data;
     this.tokenIV = iv;
     this.tokenTag = tag;

@@ -231,12 +231,10 @@ const createDomainInCloudflare = asyncHandler(async (req, res) => {
         },
       }
     );
-    console.log("response", response)
     const newDomain = await Domain.create({
-      owner,
-      domainName,
-      cloudflareAccount,
-      cloudflareZoneId:response?.data?.result?.id
+      owner:owner,
+      domainName:domainName,
+      cloudflareAccount:cloudflareAccount,
     })
 
     return res.status(200).json(
@@ -250,25 +248,106 @@ const createDomainInCloudflare = asyncHandler(async (req, res) => {
   }
 })
 
+const clearCacheOfDomain = asyncHandler ( async ( req , res)=>{
+  const {domainId}= req.body
+  try {
+    const domain = await Domain.findById(domainId)
+    const cloudflare = await Cloudflare.findById(domain.cloudflareAccount)
+    const apiKey = decrypt( cloudflare.apiKey , cloudflare.tokenIV , cloudflare.tokenTag)
+
+    // domain id in cloudflare is called zone id
+    const zoneId = await getZoneId(domain.domainName, apiKey , cloudflare.email)
+
+    const response = await axios.post(
+      `https://api.cloudflare.com/client/v4/zones/${zoneId}/purge_cache`,
+      {
+        purge_everything: true,
+      },
+      {
+        headers: {
+          "X-Auth-Key": apiKey,
+          "X-Auth-Email": cloudflare.email,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (response.data?.success) {
+      return res.status(200).json(
+        new ApiResponse(200, null, "Cache cleared successfully")
+      );
+    } else {
+      return res.status(500).json(
+        new ApiResponse(500, null, "Failed to clear cache in Cloudflare")
+      );
+    }
+
+  } catch (error) {
+    console.error("Error clearing cache in domain:", error);
+    return res.status(500).json(
+      new ApiResponse(500, null, "Something went wrong while clearing cache in domain")
+    );
+  }
+})
+
+const deleteDomainInCloudflare = asyncHandler ( async (req , res)=>{
+  const id=req.params.id
+ 
+  try {
+    const domain = await Domain.findById(id)
+    const cloudflare = await Cloudflare.findById(domain.cloudflareAccount)
+    const apiKey = decrypt( cloudflare.apiKey , cloudflare.tokenIV , cloudflare.tokenTag)
+    const zoneId = await getZoneId(domain.domainName, apiKey , cloudflare.email)
+    
+    const response = await axios.delete(
+      `https://api.cloudflare.com/client/v4/zones/${zoneId}`,
+      {
+        headers: {
+          "X-Auth-Key": apiKey,
+          "X-Auth-Email": cloudflare.email,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (response.data?.success) {
+      return res.status(200).json(
+        new ApiResponse(200, null, "Domain deleted successfully in Cloudflare")
+      );
+    } else {
+      console.error("Cloudflare API Error:", response.data.errors);
+      return res.status(500).json(
+        new ApiResponse(500, null, "Failed to delete domain in Cloudflare")
+      );
+    }
+  } catch (error) {
+    console.error("Error deleting domain in cloudflare:", error);
+    return res.status(500).json(
+      new ApiResponse(500, null, "Something went wrong while deleting domain in cloudflare")
+    );
+  }
+})
+
 const createDomainInServer = asyncHandler(async (req, res) => {
   const { domainName, serverId , owner } = req.body;
 
-  if (!domainName || !serverId) {
-    return res.status(400).json(new ApiResponse(400, null, "domainName and serverId are required"));
-  }
+  try {
+      if (!domainName || !serverId) {
+        return res.status(400).json(new ApiResponse(400, null, "domainName and serverId are required"));
+      }
 
-  const server = await Server.findById(serverId);
-  if (!server) {
-    return res.status(404).json(new ApiResponse(404, null, "Server not found"));
-  }
+    const server = await Server.findById(serverId);
+    if (!server) {
+      return res.status(404).json(new ApiResponse(404, null, "Server not found"));
+    }
 
-  const password = decrypt(server.sshPassword, server.tokenIV, server.tokenTag);
-  const randomUsername = `user_${crypto.randomBytes(4).toString("hex")}`;
+    const password = decrypt(server.sshPassword, server.tokenIV, server.tokenTag);
+    const randomUsername = `user_${crypto.randomBytes(4).toString("hex")}`;
 
-  const ssh = new Client();
-  let responseSent = false;
+    const ssh = new Client();
+    let responseSent = false;
 
-  ssh
+    ssh
     .on("ready", () => {
       const checkCommand = `echo "${password}" | sudo -S sh -c 'find /home -type d -name "${domainName}"'`;
       ssh.exec(checkCommand, (err, stream) => {
@@ -347,30 +426,37 @@ const createDomainInServer = asyncHandler(async (req, res) => {
       username: server.sshUsername,
       password: password,
     });
+  } catch (error) {
+    console.log("Something went wrong while creating domain in server" , error)
+    return res.status(500).json(
+      new ApiResponse(500 , null , "Something went wrong while creating domain in server")
+    )
+  }
 })
 
 const deleteDomainInServer = asyncHandler(async (req, res) => {
   const id = req.params.id
 
-  const domain = await Domain.findById(id)
-  const server = await Server.findById(domain.server)
-  const password = decrypt(server.sshPassword, server.tokenIV, server.tokenTag);
-  const ssh = new Client();
-  let responseSent = false;
+  try {
+    const domain = await Domain.findById(id)
+    const server = await Server.findById(domain.server)
+    const password = decrypt(server.sshPassword, server.tokenIV, server.tokenTag);
+    const ssh = new Client();
+    let responseSent = false;
 
-  const execCommand = (ssh, command) => {
-    return new Promise((resolve, reject) => {
-      ssh.exec(command, (err, stream) => {
-        if (err) return reject(err);
-        let output = "";
-        stream.on("data", (data) => (output += data.toString()));
-        stream.stderr.on("data", (data) => (output += data.toString()));
-        stream.on("close", () => resolve(output.trim()));
+    const execCommand = (ssh, command) => {
+      return new Promise((resolve, reject) => {
+        ssh.exec(command, (err, stream) => {
+          if (err) return reject(err);
+          let output = "";
+          stream.on("data", (data) => (output += data.toString()));
+          stream.stderr.on("data", (data) => (output += data.toString()));
+          stream.on("close", () => resolve(output.trim()));
+        });
       });
-    });
-  };
+    };
 
-  ssh
+    ssh
     .on("ready", async () => {
       try {
         // 1. Find the domain path
@@ -422,84 +508,11 @@ const deleteDomainInServer = asyncHandler(async (req, res) => {
       username: server.sshUsername,
       password: password,
     });
-});
-
-const clearCacheOfDomain = asyncHandler ( async ( req , res)=>{
-  const {domainId}= req.body
-  try {
-    const domain = await Domain.findById(domainId)
-    const cloudflare = await Cloudflare.findById(domain.cloudflareAccount)
-    const apiKey = decrypt( cloudflare.apiKey , cloudflare.tokenIV , cloudflare.tokenTag)
-
-    const zoneId = await getZoneId(domain.domainName, apiKey , cloudflare.email)
-      console.log("Zone ID:", zoneId);
-    const response = await axios.post(
-      `https://api.cloudflare.com/client/v4/zones/${zoneId}/purge_cache`,
-      {
-        purge_everything: true,
-      },
-      {
-        headers: {
-          "X-Auth-Key": apiKey,
-          "X-Auth-Email": cloudflare.email,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (response.data?.success) {
-      return res.status(200).json(
-        new ApiResponse(200, null, "Cache cleared successfully")
-      );
-    } else {
-      return res.status(500).json(
-        new ApiResponse(500, null, "Failed to clear cache in Cloudflare")
-      );
-    }
-
   } catch (error) {
-    console.error("Error clearing cache in domain:", error);
+    console.log("Something went wrong while deleting domain in server" , error)
     return res.status(500).json(
-      new ApiResponse(500, null, "Something went wrong while clearing cache in domain")
-    );
-  }
-})
-
-const deleteDomainInCloudflare = asyncHandler ( async (req , res)=>{
-  const id=req.params.id
- 
-  try {
-    const domain = await Domain.findById(id)
-    const cloudflare = await Cloudflare.findById(domain.cloudflareAccount)
-    const apiKey = decrypt( cloudflare.apiKey , cloudflare.tokenIV , cloudflare.tokenTag)
-    const zoneId = await getZoneId(domain.domainName, apiKey , cloudflare.email)
-    
-    const response = await axios.delete(
-      `https://api.cloudflare.com/client/v4/zones/${zoneId}`,
-      {
-        headers: {
-          "X-Auth-Key": apiKey,
-          "X-Auth-Email": cloudflare.email,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-    console.log("deletd", response)
-    if (response.data?.success) {
-      return res.status(200).json(
-        new ApiResponse(200, null, "Domain deleted successfully in Cloudflare")
-      );
-    } else {
-      console.error("Cloudflare API Error:", response.data.errors);
-      return res.status(500).json(
-        new ApiResponse(500, null, "Failed to delete domain in Cloudflare")
-      );
-    }
-  } catch (error) {
-    console.error("Error deleting domain in cloudflare:", error);
-    return res.status(500).json(
-      new ApiResponse(500, null, "Something went wrong while deleting domain in cloudflare")
-    );
+      new ApiResponse(500 , null , "Something went wrong while deleting domain in server")
+    )
   }
 })
 
